@@ -1,0 +1,1620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Couple's Financial Tracker</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Lucide Icons for a clean, modern look -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        
+        /* Core iOS-inspired Color Palette */
+        :root {
+            --ios-blue: #0A84FF; /* Brighter Blue */
+            --ios-gray: #EFEFF4; /* Lighter BG */
+            --ios-dark-gray: #8E8E93;
+            --ios-bg: #F2F2F7; /* Very light background for the whole page */
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--ios-bg);
+        }
+        
+        /* Enhanced Card Style - Deeper Shadow, Cleaner Edges */
+        .ios-card {
+            background-color: white;
+            border-radius: 16px; /* Slightly larger radius */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* More noticeable but soft shadow */
+            padding: 24px;
+        }
+        
+        /* Input Field Refinement */
+        .ios-input, .ios-select {
+            border: 1px solid #D1D1D6; /* Cleaner, subtle border */
+            border-radius: 12px; /* Smoother corners */
+            padding: 12px 16px; /* Increased padding */
+            transition: all 0.2s;
+            background-color: white;
+            font-size: 16px;
+        }
+        .ios-input:focus, .ios-select:focus {
+            outline: none;
+            border-color: var(--ios-blue);
+            box-shadow: 0 0 0 4px rgba(10, 132, 255, 0.15); /* Vivid focus ring */
+        }
+
+        /* Primary Button Style */
+        .ios-button {
+            background-color: var(--ios-blue);
+            color: white;
+            border-radius: 12px;
+            padding: 12px 20px;
+            font-weight: 600;
+            transition: background-color 0.2s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .ios-button:hover {
+            background-color: #007AFF; /* Slightly darker on hover */
+        }
+
+        /* Navigation/Tab Styles */
+        .ios-tab-active {
+            background-color: var(--ios-blue);
+            color: white !important;
+            font-weight: 600;
+        }
+        .nav-button {
+            color: #4B5563; /* Darker gray for inactive text */
+        }
+        .nav-button:hover {
+            background-color: var(--ios-gray);
+        }
+
+        /* Table Styles */
+        .table-header {
+            background-color: #E5E7EB; /* Light header background */
+            font-weight: 700;
+            text-align: left;
+            padding: 16px 16px;
+            color: #1F2937;
+        }
+        .table-row-hover:hover {
+            background-color: #F8F8F8;
+        }
+        .table-row-zebra:nth-child(even) {
+            background-color: #FAFAFA; /* Subtle zebra striping */
+        }
+
+        /* Custom Colors for Data */
+        .peso-color-income { color: #10B981; } /* Emerald */
+        .peso-color-expense { color: #EF4444; } /* Red */
+        .peso-color-debt { color: #F59E0B; } /* Amber */
+        
+        /* General Layout */
+        #main-app {
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: 280px; /* Slightly wider sidebar */
+            min-width: 280px;
+        }
+
+        /* Responsive adjustments for mobile view */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: static;
+                border-bottom: 1px solid #D1D1D6;
+            }
+            #main-app {
+                flex-direction: column;
+            }
+            .app-section {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="min-h-screen">
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="loading-overlay hidden">
+            <svg class="animate-spin -ml-1 mr-3 h-10 w-10 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="text-xl text-gray-700">Loading data...</p>
+        </div>
+
+        <!-- Login Screen -->
+        <div id="login-screen" class="hidden flex justify-center items-center min-h-screen">
+            <div class="ios-card w-full max-w-md p-8">
+                <h2 class="text-3xl font-bold text-center mb-2 text-gray-900">CoupleTrack</h2>
+                <p class="text-center text-gray-500 mb-8">Sign in or create an account to start tracking.</p>
+                <input id="email-input" type="email" placeholder="Email Address" class="ios-input w-full mb-4">
+                <input id="password-input" type="password" placeholder="Password" class="ios-input w-full mb-6">
+                <button id="login-button" class="ios-button w-full mb-3">Sign In</button>
+                <button id="signup-button" class="ios-button w-full bg-gray-500 hover:bg-gray-600">Create Account</button>
+                <p id="auth-message" class="text-center text-red-500 mt-4"></p>
+            </div>
+        </div>
+
+        <!-- Main Application Screen -->
+        <div id="main-app" class="hidden flex lg:flex-row flex-col">
+            <!-- Sidebar Navigation -->
+            <div class="sidebar bg-white border-r border-gray-200 p-6 lg:sticky top-0 h-auto lg:h-screen overflow-y-auto">
+                <h1 class="text-3xl font-extrabold mb-10 text-center text-gray-900">CoupleTrack</h1>
+
+                <nav class="space-y-2">
+                    <button data-section="tracker" class="nav-button w-full flex items-center p-3 rounded-xl transition-colors text-gray-600 ios-tab-active">
+                        <i data-lucide="wallet" class="w-5 h-5 mr-3"></i>
+                        <span class="text-left flex-1">Tracker</span>
+                    </button>
+                    <button data-section="reports" class="nav-button w-full flex items-center p-3 rounded-xl transition-colors text-gray-600">
+                        <i data-lucide="bar-chart-3" class="w-5 h-5 mr-3"></i>
+                        <span class="text-left flex-1">Reports</span>
+                    </button>
+                    <button data-section="calendar" class="nav-button w-full flex items-center p-3 rounded-xl transition-colors text-gray-600">
+                        <i data-lucide="calendar-check" class="w-5 h-5 mr-3"></i>
+                        <span class="text-left flex-1">Calendar</span>
+                    </button>
+                    <button data-section="settings" class="nav-button w-full flex items-center p-3 rounded-xl transition-colors text-gray-600">
+                        <i data-lucide="settings" class="w-5 h-5 mr-3"></i>
+                        <span class="text-left flex-1">Settings</span>
+                    </button>
+                </nav>
+
+                <div class="mt-12 pt-6 border-t border-gray-200">
+                    <div id="user-info" class="text-sm text-gray-500 mb-4 truncate"></div>
+                    <button id="logout-button" class="ios-button w-full bg-red-500 hover:bg-red-600 text-sm flex items-center justify-center">
+                        <i data-lucide="log-out" class="w-4 h-4 inline mr-2"></i>
+                        Sign Out
+                    </button>
+                </div>
+            </div>
+
+            <!-- Content Area -->
+            <main class="flex-1 p-6 lg:p-10 overflow-y-auto">
+                <!-- Tracker Section -->
+                <section id="tracker-section" class="app-section">
+                    <h2 class="text-4xl font-extrabold mb-8 text-gray-900">Expense Tracker</h2>
+                    
+                    <!-- Balance Summary Card -->
+                    <div id="current-balance-summary" class="ios-card mb-8 p-6 bg-gradient-to-br from-blue-50 to-white border border-blue-100">
+                        <!-- Balance summary will be injected here -->
+                    </div>
+
+                    <!-- New Transaction Form -->
+                    <div class="ios-card mb-10">
+                        <h3 class="text-2xl font-bold mb-6 border-b pb-3 text-gray-800">Log New Transaction</h3>
+                        <form id="expense-form" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            
+                            <div class="lg:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Particulars / Description</label>
+                                <input type="text" id="expense-particular" placeholder="E.g., Dinner at Cafe Lusso" class="ios-input w-full" required>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Amount (₱)</label>
+                                <input type="number" id="expense-amount" placeholder="1,500.00" class="ios-input w-full" required min="1">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                                <input type="date" id="expense-date" class="ios-input w-full" required>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                                <select id="expense-type" class="ios-select w-full" required>
+                                    <option value="" disabled selected>Txn Type</option>
+                                    <option value="Expense">Expense</option>
+                                    <option value="Income">Income</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                                <select id="expense-category" class="ios-select w-full" required>
+                                    <option value="" disabled selected>Select Category</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Who Paid / Received</label>
+                                <select id="expense-who-paid" class="ios-select w-full" required>
+                                    <option value="" disabled selected>Select Partner</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Account</label>
+                                <select id="expense-account" class="ios-select w-full" required>
+                                    <option value="" disabled selected>Select Account</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Debt Handling</label>
+                                <select id="expense-debt-type" class="ios-select w-full" required>
+                                    <option value="Shared">Shared Expense (Split)</option>
+                                    <option value="Personal">Personal Expense (Deducted)</option>
+                                    <option value="DebtPayment">Debt Payment (No Split)</option>
+                                </select>
+                            </div>
+
+                            <button type="submit" class="ios-button lg:col-span-4 mt-4 flex items-center justify-center">
+                                <i data-lucide="plus-circle" class="w-5 h-5 mr-2"></i>
+                                Add Transaction
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Transaction Log Table -->
+                    <div class="ios-card p-0 overflow-hidden">
+                        <div class="p-6 border-b">
+                            <h3 class="text-2xl font-bold text-gray-800">Transaction Log</h3>
+                        </div>
+                        
+                        <!-- Filters -->
+                        <div class="p-4 flex flex-wrap gap-4 border-b">
+                            <input type="text" id="filter-particular" placeholder="Search by Description..." class="ios-input flex-1 min-w-40">
+                            <input type="date" id="filter-date-start" class="ios-input min-w-32">
+                            <input type="date" id="filter-date-end" class="ios-input min-w-32">
+                            <select id="sort-by" class="ios-select min-w-32">
+                                <option value="date_desc">Newest First</option>
+                                <option value="date_asc">Oldest First</option>
+                                <option value="amount_desc">Amount (High)</option>
+                                <option value="amount_asc">Amount (Low)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead>
+                                    <tr>
+                                        <th class="table-header w-20">Date</th>
+                                        <th class="table-header">Particular</th>
+                                        <th class="table-header w-24">Type</th>
+                                        <th class="table-header w-32 text-right">Amount (₱)</th>
+                                        <th class="table-header w-32">Who Paid</th>
+                                        <th class="table-header w-32">Category</th>
+                                        <th class="table-header w-24">Debt</th>
+                                        <th class="table-header w-24 text-center">Delete</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transactions-table-body" class="bg-white divide-y divide-gray-100">
+                                    <!-- Transactions rows will be injected here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Reports Section -->
+                <section id="reports-section" class="app-section hidden">
+                    <h2 class="text-4xl font-extrabold mb-8 text-gray-900">Financial Reports</h2>
+
+                    <div class="ios-card mb-8 p-6 flex flex-col md:flex-row justify-between items-center gap-4">
+                        <h3 class="text-xl font-semibold text-gray-700">Filter Period</h3>
+                        <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                            <input type="date" id="report-date-start" class="ios-input">
+                            <input type="date" id="report-date-end" class="ios-input">
+                            <button id="generate-report-button" class="ios-button flex items-center justify-center">
+                                <i data-lucide="refresh-ccw" class="w-4 h-4 mr-2"></i>
+                                Run Report
+                            </button>
+                        </div>
+                        <button id="print-report-button" class="ios-button bg-gray-500 hover:bg-gray-600 flex items-center justify-center md:w-40">
+                            <i data-lucide="printer" class="w-5 h-5 mr-2"></i>
+                            Print
+                        </button>
+                    </div>
+
+                    <div id="report-output" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="ios-card lg:col-span-2">
+                            <h4 class="text-2xl font-bold mb-4 border-b pb-3 text-gray-800">Settlement Summary</h4>
+                            <div id="settlement-summary">
+                                <p class="text-gray-500">Run the report to see settlement details.</p>
+                            </div>
+                        </div>
+
+                        <div class="ios-card">
+                            <h4 class="text-2xl font-bold mb-4 border-b pb-3 text-gray-800">Category Spending</h4>
+                            <div id="category-spending-chart">
+                                <ul id="category-list" class="space-y-4">
+                                    <p class="text-gray-500">Run the report to see spending breakdown.</p>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="ios-card lg:col-span-3 p-0 overflow-hidden">
+                            <h4 class="text-2xl font-bold p-6 border-b text-gray-800">Detailed Transaction Overview (Filtered)</h4>
+                            <div id="reports-transactions-table" class="overflow-x-auto">
+                                <p class="text-gray-500 p-6">Filtered transaction details will appear here.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Calendar Section -->
+                <section id="calendar-section" class="app-section hidden">
+                    <h2 class="text-4xl font-extrabold mb-8 text-gray-900">Upcoming Expenses & Calendar</h2>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="ios-card lg:col-span-2 p-0">
+                            <div class="p-4 flex justify-between items-center border-b">
+                                <button id="calendar-prev" class="ios-button bg-gray-100 text-gray-800 hover:bg-gray-200 w-10 h-10 p-0 flex items-center justify-center rounded-full"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
+                                <h3 id="calendar-title" class="text-xl font-bold"></h3>
+                                <button id="calendar-next" class="ios-button bg-gray-100 text-gray-800 hover:bg-gray-200 w-10 h-10 p-0 flex items-center justify-center rounded-full"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
+                            </div>
+                            <div id="calendar-grid" class="grid grid-cols-7 text-center p-4">
+                                <!-- Calendar structure injected here -->
+                            </div>
+                        </div>
+
+                        <div class="ios-card">
+                            <h3 class="text-2xl font-bold mb-4 border-b pb-3 text-gray-800">Schedule New Item</h3>
+                            <form id="upcoming-form" class="space-y-4">
+                                <input type="text" id="upcoming-particular" placeholder="Bill Name / Item" class="ios-input w-full" required>
+                                <input type="number" id="upcoming-amount" placeholder="Amount (₱)" class="ios-input w-full" required min="1">
+                                <input type="date" id="upcoming-date" class="ios-input w-full" required>
+
+                                <div class="flex items-center space-x-3 pt-2">
+                                    <input type="checkbox" id="upcoming-recurring" class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                    <label for="upcoming-recurring" class="text-gray-700 font-medium">Recurring Monthly</label>
+                                </div>
+
+                                <div id="recurring-settings" class="pl-6 space-y-2 hidden">
+                                    <label class="block text-sm font-medium text-gray-700">Recur on Day of Month:</label>
+                                    <select id="recurring-day" class="ios-select w-full">
+                                        <!-- Days 1-31 options loaded here -->
+                                    </select>
+                                </div>
+
+                                <button type="submit" class="ios-button w-full mt-4 flex items-center justify-center">
+                                    <i data-lucide="calendar-plus" class="w-5 h-5 mr-2"></i>
+                                    Schedule Item
+                                </button>
+                            </form>
+
+                            <div class="mt-8 pt-6 border-t">
+                                <h4 class="text-xl font-bold mb-3 text-gray-800">Scheduled Items</h4>
+                                <ul id="upcoming-list" class="space-y-3">
+                                    <!-- Upcoming items list injected here -->
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Settings Page -->
+                <section id="settings-section" class="app-section hidden">
+                    <h2 class="text-4xl font-extrabold mb-8 text-gray-900">Settings & Configuration</h2>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                        <!-- Partner Details & Division -->
+                        <div class="ios-card lg:col-span-2">
+                            <h3 class="text-2xl font-bold mb-4 border-b pb-3 text-gray-800">Partners & Expense Division</h3>
+                            <form id="partner-settings-form" class="space-y-6">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Partner A Name</label>
+                                        <input type="text" id="partner-a-name" placeholder="Partner A Name" class="ios-input w-full" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Partner A Monthly Income (₱)</label>
+                                        <input type="number" id="partner-a-income" placeholder="0" class="ios-input w-full" required min="0">
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Partner B Name</label>
+                                        <input type="text" id="partner-b-name" placeholder="Partner B Name" class="ios-input w-full" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Partner B Monthly Income (₱)</label>
+                                        <input type="number" id="partner-b-income" placeholder="0" class="ios-input w-full" required min="0">
+                                    </div>
+                                </div>
+
+                                <fieldset class="mt-4 p-5 border border-gray-200 rounded-xl">
+                                    <legend class="text-lg font-bold text-gray-900 px-2">Shared Expense Split Method</legend>
+                                    <div class="mt-4 space-y-3">
+                                        <label class="flex items-center">
+                                            <input type="radio" name="division-method" value="50/50" class="h-5 w-5 text-blue-600">
+                                            <span class="ml-3 text-base font-medium text-gray-700">50/50 (Equal Split)</span>
+                                        </label>
+                                        <label class="flex items-center">
+                                            <input type="radio" name="division-method" value="Proportional" class="h-5 w-5 text-blue-600">
+                                            <span class="ml-3 text-base font-medium text-gray-700">Proportional (Based on Income)</span>
+                                        </label>
+                                        <label class="flex items-center">
+                                            <input type="radio" name="division-method" value="Custom" class="h-5 w-5 text-blue-600">
+                                            <span class="ml-3 text-base font-medium text-gray-700">Custom Percentage</span>
+                                        </label>
+                                    </div>
+
+                                    <div id="custom-percentage-fields" class="mt-6 pt-5 border-t border-gray-200 hidden grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Partner A %</label>
+                                            <input type="number" id="partner-a-percent" placeholder="e.g., 70" class="ios-input w-full" min="0" max="100">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Partner B %</label>
+                                            <input type="number" id="partner-b-percent" placeholder="e.g., 30" class="ios-input w-full" min="0" max="100">
+                                        </div>
+                                        <p id="custom-percent-error" class="text-red-500 text-sm col-span-2 hidden mt-2">Percentages must sum to 100.</p>
+                                    </div>
+                                </fieldset>
+
+                                <button type="submit" class="ios-button w-full flex items-center justify-center">
+                                    <i data-lucide="save" class="w-5 h-5 mr-2"></i>
+                                    Save Partner Settings
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Custom Accounts & Types -->
+                        <div class="ios-card">
+                            <h3 class="text-2xl font-bold mb-4 border-b pb-3 text-gray-800">Manage Custom Categories</h3>
+                            <form id="custom-type-form" class="space-y-4">
+                                <select id="custom-type-select" class="ios-select w-full">
+                                    <option value="asset">Asset Account</option>
+                                    <option value="liability">Liability Account</option>
+                                    <option value="income">Income Type</option>
+                                    <option value="expense">Expense Type</option>
+                                </select>
+                                <input type="text" id="custom-type-name" placeholder="New Item Name (e.g., Groceries)" class="ios-input w-full" required>
+                                <button type="submit" class="ios-button w-full bg-green-500 hover:bg-green-600 flex items-center justify-center">
+                                    <i data-lucide="plus" class="w-5 h-5 mr-2"></i>
+                                    Add Custom Item
+                                </button>
+                            </form>
+
+                            <div class="mt-6 pt-6 border-t">
+                                <h4 class="text-xl font-bold mb-3 text-gray-800">Current Custom Items</h4>
+                                <ul id="custom-items-list" class="space-y-3 text-sm">
+                                    <!-- Custom items injected here -->
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modal for Confirmation/Info -->
+    <div id="app-modal" class="hidden fixed inset-0 bg-black bg-opacity-40 z-50 flex justify-center items-center p-4">
+        <div class="ios-card w-full max-w-sm p-6 space-y-5">
+            <h3 id="modal-title" class="text-xl font-bold text-gray-900"></h3>
+            <p id="modal-message" class="text-gray-700"></p>
+            <div class="flex justify-end space-x-3 pt-3">
+                <button id="modal-cancel-button" class="ios-button bg-gray-400 hover:bg-gray-500 text-sm">Cancel</button>
+                <button id="modal-confirm-button" class="ios-button bg-red-500 hover:bg-red-600 text-sm">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Firebase Core and Firestore/Auth SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import {
+            getAuth,
+            signInWithEmailAndPassword,
+            createUserWithEmailAndPassword,
+            signOut,
+            onAuthStateChanged,
+            signInWithCustomToken,
+            signInAnonymously
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import {
+            getFirestore,
+            doc,
+            setDoc,
+            updateDoc,
+            deleteDoc,
+            onSnapshot,
+            collection,
+            query,
+            addDoc,
+            Timestamp,
+            where
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+
+        setLogLevel('Debug');
+
+        // --- GLOBAL CONFIG & INIT ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyA3Pi_BB5D_uDq9yNYraGyCxg_JukNp66k",
+            authDomain: "studio-2523816271-96710.firebaseapp.com",
+            projectId: "studio-2523816271-96710",
+            storageBucket: "studio-2523816271-96710.firebasestorage.app",
+            messagingSenderId: "79405504947",
+            appId: "1:79405504947:web:69b9ac42b50098cec713c6"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // Canvas Global Variables
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        let userId = null;
+
+        // --- STATE MANAGEMENT ---
+        let appState = {
+            settings: {
+                partnerA: "Partner A",
+                partnerB: "Partner B",
+                incomeA: 0,
+                incomeB: 0,
+                divisionMethod: "50/50", // 50/50, Proportional, Custom
+                customA: 50,
+                customB: 50,
+                currentDebt: 0, // B owes A (positive) or A owes B (negative)
+            },
+            accounts: {
+                asset: ["Cash", "Bank", "Savings"],
+                liability: ["Credit Card", "Loan", "Payable"],
+                income: ["Salary", "Bonus"],
+                expense: ["Food", "Rent", "Utilities", "Travel"],
+            },
+            transactions: [],
+            upcoming: [],
+            currentView: "tracker",
+            filteredTransactions: [],
+        };
+
+        // --- UTILITY FUNCTIONS ---
+
+        const formatCurrency = (amount) => {
+            return `₱ ${Math.abs(amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+        };
+
+        const showMessageModal = (title, message, isConfirm = false, onConfirm = () => {}) => {
+            const modal = document.getElementById('app-modal');
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').innerHTML = message; // Use innerHTML for richer content
+            const confirmBtn = document.getElementById('modal-confirm-button');
+            const cancelBtn = document.getElementById('modal-cancel-button');
+
+            if (isConfirm) {
+                confirmBtn.classList.remove('hidden');
+                cancelBtn.classList.remove('hidden');
+                confirmBtn.onclick = () => { onConfirm(); modal.classList.add('hidden'); };
+                cancelBtn.onclick = () => { modal.classList.add('hidden'); };
+            } else {
+                confirmBtn.classList.add('hidden');
+                cancelBtn.classList.remove('hidden');
+                cancelBtn.textContent = 'Close';
+                cancelBtn.classList.remove('bg-gray-400');
+                cancelBtn.classList.add('bg-blue-500', 'hover:bg-blue-600');
+                cancelBtn.onclick = () => { modal.classList.add('hidden'); };
+            }
+
+            modal.classList.remove('hidden');
+        };
+
+        const updateLoading = (show) => {
+            document.getElementById('loading-overlay').classList.toggle('hidden', !show);
+        };
+
+        const getPartnerNames = () => [appState.settings.partnerA, appState.settings.partnerB];
+
+        const getPartnerShare = (isPartnerA) => {
+            const { incomeA, incomeB, divisionMethod, customA, customB } = appState.settings;
+            let share = 0.5; // Default 50/50
+
+            if (divisionMethod === "Proportional") {
+                const totalIncome = incomeA + incomeB;
+                if (totalIncome > 0) {
+                    share = isPartnerA ? (incomeA / totalIncome) : (incomeB / totalIncome);
+                }
+            } else if (divisionMethod === "Custom") {
+                share = isPartnerA ? (customA / 100) : (customB / 100);
+            }
+            return share;
+        };
+
+        /**
+         * Calculates the debt adjustment for a single shared expense transaction.
+         * Debt is relative to Partner B owing Partner A.
+         * Positive result means B owes A. Negative means A owes B.
+         * @param {number} amount - The total expense amount.
+         * @param {string} whoPaid - The name of the partner who paid.
+         * @returns {number} The change in debt.
+         */
+        const calculateDebtAdjustment = (amount, whoPaid) => {
+            const isPartnerAPaid = whoPaid === appState.settings.partnerA;
+            const partnerAShare = getPartnerShare(true);
+
+            // A's target share is what A should have paid.
+            const partnerATargetShare = amount * partnerAShare;
+
+            // B's target share is what B should have paid.
+            const partnerBTargetShare = amount * (1 - partnerAShare);
+
+            if (isPartnerAPaid) {
+                // A paid the whole amount.
+                // B owes A B's target share. (Positive debt for B)
+                return partnerBTargetShare;
+            } else {
+                // B paid the whole amount.
+                // A owes B A's target share. (Negative debt for B, positive for A)
+                return -partnerATargetShare;
+            }
+        };
+
+        // --- FIREBASE PATHS & CRUD ---
+
+        const getSettingsPath = () => `artifacts/${appId}/users/${userId}/settings/config`;
+        const getCustomAccountsPath = () => `artifacts/${appId}/users/${userId}/accounts/types`;
+        const getTransactionsColRef = () => collection(db, `artifacts/${appId}/users/${userId}/transactions`);
+        const getUpcomingColRef = () => collection(db, `artifacts/${appId}/users/${userId}/upcoming`);
+
+        const saveSettings = async (data) => {
+            if (!userId) return;
+            try {
+                await setDoc(doc(db, getSettingsPath()), data, { merge: true });
+                // Don't show success here, let the onSnapshot handle UI updates
+            } catch (e) {
+                console.error("Error saving settings: ", e);
+                showMessageModal("Error", "Failed to save settings. Check console for details.");
+            }
+        };
+
+        const addTransaction = async (data) => {
+            if (!userId) return;
+            try {
+                const docRef = await addDoc(getTransactionsColRef(), {
+                    ...data,
+                    timestamp: Timestamp.now(),
+                    date: Timestamp.fromDate(new Date(data.date))
+                });
+
+                // Update total debt if it was a shared expense
+                if (data.debtType === "Shared" && data.type === "Expense") {
+                    const adjustment = calculateDebtAdjustment(data.amount, data.whoPaid);
+                    await updateDoc(doc(db, getSettingsPath()), {
+                        currentDebt: appState.settings.currentDebt + adjustment
+                    });
+                } else if (data.debtType === "DebtPayment") {
+                     // We simplified: only update debt on reconciliation, DebtPayment is just a log of money transfer.
+                }
+
+                document.getElementById('expense-form').reset();
+            } catch (e) {
+                console.error("Error adding transaction: ", e);
+                showMessageModal("Error", "Failed to add transaction.");
+            }
+        };
+
+        const deleteTransaction = async (id, isSharedExpense, amount, whoPaid, type) => {
+            if (!userId) return;
+            try {
+                await deleteDoc(doc(getTransactionsColRef(), id));
+
+                // Recalculate debt only if it was a shared expense/income
+                if (isSharedExpense && type === "Expense") {
+                    const adjustment = calculateDebtAdjustment(amount, whoPaid);
+                    // Deleting the transaction reverses the debt adjustment
+                    await updateDoc(doc(db, getSettingsPath()), {
+                        currentDebt: appState.settings.currentDebt - adjustment
+                    });
+                }
+            } catch (e) {
+                console.error("Error deleting transaction: ", e);
+                showMessageModal("Error", "Failed to delete transaction.");
+            }
+        };
+
+        const addUpcomingExpense = async (data) => {
+            if (!userId) return;
+            try {
+                await addDoc(getUpcomingColRef(), {
+                    ...data,
+                    timestamp: Timestamp.now(),
+                    date: Timestamp.fromDate(new Date(data.date))
+                });
+                document.getElementById('upcoming-form').reset();
+            } catch (e) {
+                console.error("Error adding upcoming expense: ", e);
+                showMessageModal("Error", "Failed to schedule expense.");
+            }
+        };
+
+        const deleteUpcomingExpense = async (id) => {
+            if (!userId) return;
+            try {
+                await deleteDoc(doc(getUpcomingColRef(), id));
+            } catch (e) {
+                console.error("Error deleting upcoming expense: ", e);
+                showMessageModal("Error", "Failed to delete scheduled expense.");
+            }
+        };
+
+        const saveCustomAccounts = async (type, name) => {
+            if (!userId) return;
+            try {
+                const trimmedName = name.trim();
+                const existingItems = appState.accounts[type] || [];
+
+                if (!existingItems.includes(trimmedName) && trimmedName !== "") {
+                    // FIX: Use spread operator to ensure non-mutating array creation and correctly update state
+                    const newItems = [...existingItems, trimmedName];
+
+                    // Construct the update payload for Firestore, only updating the specific type array
+                    const updatedAccounts = {
+                        [type]: newItems
+                    };
+
+                    // Use setDoc with merge:true on the document
+                    await setDoc(doc(db, getCustomAccountsPath()), updatedAccounts, { merge: true });
+                    document.getElementById('custom-type-name').value = '';
+                }
+            } catch (e) {
+                console.error("Error adding custom item: ", e);
+                showMessageModal("Error", "Failed to add custom item.");
+            }
+        };
+
+        const deleteCustomAccount = async (type, name) => {
+            if (!userId) return;
+            try {
+                const currentItems = appState.accounts[type] || [];
+                
+                // Filter creates a new array, no mutation issue here
+                const updatedItems = currentItems.filter(item => item !== name);
+                
+                // Construct payload to update only the relevant field
+                const updatedAccounts = { [type]: updatedItems }; 
+
+                // Use setDoc with merge:true for robust updating
+                await setDoc(doc(db, getCustomAccountsPath()), updatedAccounts, { merge: true });
+            } catch (e) {
+                console.error("Error deleting custom item: ", e);
+                showMessageModal("Error", "Failed to delete custom item.");
+            }
+        };
+
+        // --- RENDER FUNCTIONS ---
+
+        const renderAuthScreen = (show) => {
+            document.getElementById('login-screen').classList.toggle('hidden', !show);
+            document.getElementById('main-app').classList.toggle('hidden', show);
+        };
+
+        const renderApp = () => {
+            // 1. Update Partner Names in Tracker/Forms
+            const [partnerA, partnerB] = getPartnerNames();
+            const whoPaidSelect = document.getElementById('expense-who-paid');
+            // Store current selected value to maintain selection across renders
+            const currentPaid = whoPaidSelect.value; 
+            whoPaidSelect.innerHTML = `<option value="" disabled selected>Select Partner</option>
+                                       <option value="${partnerA}">${partnerA}</option>
+                                       <option value="${partnerB}">${partnerB}</option>`;
+            whoPaidSelect.value = currentPaid || "";
+
+            // 2. Update Custom Selects
+            const expenseCategorySelect = document.getElementById('expense-category');
+            const currentCat = expenseCategorySelect.value;
+            const categories = [...appState.accounts.expense, ...appState.accounts.income];
+            expenseCategorySelect.innerHTML = `<option value="" disabled selected>Select Category</option>` +
+                                              categories.map(c => `<option value="${c}">${c}</option>`).join('');
+            expenseCategorySelect.value = currentCat || "";
+
+            const expenseAccountSelect = document.getElementById('expense-account');
+            const currentAcc = expenseAccountSelect.value;
+            const accounts = [...appState.accounts.asset, ...appState.accounts.liability];
+            expenseAccountSelect.innerHTML = `<option value="" disabled selected>Select Account</option>` +
+                                              accounts.map(a => `<option value="${a}">${a}</option>`).join('');
+            expenseAccountSelect.value = currentAcc || "";
+
+
+            // 3. Render Tracker Section
+            renderTrackerSummary();
+            renderTransactionsTable();
+
+            // 4. Render Settings
+            renderSettings();
+
+            // 5. Render Calendar (if in view)
+            if (appState.currentView === 'calendar') {
+                renderCalendar();
+            }
+
+            // 6. Update User Info
+            document.getElementById('user-info').textContent = `User ID: ${userId.slice(0, 8)}...`; // Show truncated ID
+
+            // Re-render lucide icons
+            lucide.createIcons();
+        };
+
+        const renderTrackerSummary = () => {
+            const { partnerA, partnerB, currentDebt } = appState.settings;
+            const debtAmount = formatCurrency(currentDebt);
+            let debtStatusText = '';
+            let subStatusText = '';
+
+            if (currentDebt === 0) {
+                debtStatusText = `All settled up!`;
+                subStatusText = "Congratulations, you are balanced!";
+            } else if (currentDebt > 0) {
+                // B owes A
+                debtStatusText = `${partnerB} owes ${partnerA}:`;
+                subStatusText = `Reconcile the ${debtAmount} debt now.`;
+            } else { 
+                // A owes B (currentDebt < 0)
+                debtStatusText = `${partnerA} owes ${partnerB}:`;
+                subStatusText = `Reconcile the ${debtAmount} debt now.`;
+            }
+
+            // Reconciliation Button
+            const reconcileButton = currentDebt !== 0
+                ? `<button id="reconcile-button" class="ios-button bg-green-500 hover:bg-green-600 mt-4 flex items-center justify-center w-full sm:w-auto">
+                      <i data-lucide="check-circle" class="w-5 h-5 mr-2"></i>
+                      Reconcile Balance
+                   </button>`
+                : '<div class="h-10"></div>'; // Placeholder space
+
+            document.getElementById('current-balance-summary').innerHTML = `
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                    <div>
+                        <h4 class="text-lg font-semibold text-gray-700">${debtStatusText}</h4>
+                        <p class="text-4xl font-extrabold ${currentDebt === 0 ? 'text-gray-900' : 'peso-color-debt'} mt-1">${debtAmount}</p>
+                        <p class="text-sm text-gray-500 mt-1">${subStatusText}</p>
+                    </div>
+                    ${reconcileButton}
+                </div>
+            `;
+            // Re-render icons after injection
+            lucide.createIcons();
+            // Attach event listener for reconciliation
+            if (currentDebt !== 0) {
+                document.getElementById('reconcile-button').onclick = () => showMessageModal(
+                    "Reconcile Debt",
+                    `Are you sure you want to zero out the current debt of <strong>${debtAmount}</strong>? This assumes the payment has been settled.`,
+                    true,
+                    async () => {
+                        await saveSettings({ currentDebt: 0 });
+                        showMessageModal("Success", "Debt balance reconciled to zero.");
+                    }
+                );
+            }
+        };
+
+        const renderTransactionsTable = () => {
+            const transactions = appState.filteredTransactions.length > 0 ? appState.filteredTransactions : appState.transactions;
+            const tableBody = document.getElementById('transactions-table-body');
+            tableBody.innerHTML = ''; // Clear previous rows
+
+            if (transactions.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="8" class="text-center py-6 text-gray-500">No transactions logged yet.</td></tr>';
+                return;
+            }
+
+            transactions.forEach((t, index) => {
+                const isExpense = t.type === 'Expense';
+                const colorClass = isExpense ? 'peso-color-expense' : 'peso-color-income';
+                const debtInfo = t.debtType === 'Shared' && isExpense
+                    ? (t.whoPaid === appState.settings.partnerA ? `B owes A` : `A owes B`)
+                    : 'N/A';
+
+                const row = document.createElement('tr');
+                row.className = `table-row-hover table-row-zebra`;
+                row.innerHTML = `
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${new Date(t.date.seconds * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td>
+                    <td class="px-4 py-3 font-medium text-gray-800">${t.particular}</td>
+                    <td class="px-4 py-3 text-sm font-semibold">${t.type}</td>
+                    <td class="px-4 py-3 font-bold ${colorClass} text-right">${formatCurrency(t.amount)}</td>
+                    <td class="px-4 py-3 text-sm text-gray-600">${t.whoPaid}</td>
+                    <td class="px-4 py-3 text-sm">${t.category}</td>
+                    <td class="px-4 py-3 text-sm text-center text-gray-700">${debtInfo}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-center text-sm font-medium">
+                        <button class="text-red-600 hover:text-red-900 delete-btn p-1 rounded-full hover:bg-red-100 transition-colors" data-id="${t.id}"
+                                data-shared="${t.debtType === 'Shared'}"
+                                data-amount="${t.amount}"
+                                data-paid="${t.whoPaid}"
+                                data-type="${t.type}">
+                            <i data-lucide="trash-2" class="w-4 h-4 inline"></i>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            // Re-render icons
+            lucide.createIcons();
+
+            // Attach delete listeners
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.onclick = () => showMessageModal(
+                    "Confirm Deletion",
+                    "Are you sure you want to delete this transaction? This will also recalculate the debt balance if it was a shared expense.",
+                    true,
+                    () => deleteTransaction(
+                        btn.dataset.id,
+                        btn.dataset.shared === 'true',
+                        parseFloat(btn.dataset.amount),
+                        btn.dataset.paid,
+                        btn.dataset.type
+                    )
+                );
+            });
+        };
+
+        const filterAndSortTransactions = () => {
+            let filtered = [...appState.transactions];
+
+            const particularFilter = document.getElementById('filter-particular').value.toLowerCase();
+            const dateStart = document.getElementById('filter-date-start').value;
+            const dateEnd = document.getElementById('filter-date-end').value;
+            const sortBy = document.getElementById('sort-by').value;
+
+            // 1. Filter
+            filtered = filtered.filter(t => {
+                const tDate = new Date(t.date.seconds * 1000);
+                let pass = true;
+
+                if (particularFilter) {
+                    if (!t.particular.toLowerCase().includes(particularFilter)) pass = false;
+                }
+                if (dateStart) {
+                    const start = new Date(dateStart);
+                    if (tDate.getTime() < start.getTime()) pass = false;
+                }
+                if (dateEnd) {
+                    const end = new Date(dateEnd);
+                    end.setHours(23, 59, 59, 999); // Include the whole end day
+                    if (tDate.getTime() > end.getTime()) pass = false;
+                }
+                return pass;
+            });
+
+            // 2. Sort
+            filtered.sort((a, b) => {
+                const aVal = a.amount || 0;
+                const bVal = b.amount || 0;
+                const aDate = a.date.seconds;
+                const bDate = b.date.seconds;
+
+                switch (sortBy) {
+                    case 'date_desc': return bDate - aDate;
+                    case 'date_asc': return aDate - bDate;
+                    case 'amount_desc': return bVal - aVal;
+                    case 'amount_asc': return aVal - bVal;
+                    default: return 0;
+                }
+            });
+
+            appState.filteredTransactions = filtered;
+            renderTransactionsTable();
+        };
+
+        const renderSettings = () => {
+            const { partnerA, partnerB, incomeA, incomeB, divisionMethod, customA, customB } = appState.settings;
+
+            // Partner & Income
+            document.getElementById('partner-a-name').value = partnerA;
+            document.getElementById('partner-b-name').value = partnerB;
+            document.getElementById('partner-a-income').value = incomeA;
+            document.getElementById('partner-b-income').value = incomeB;
+
+            // Division Method
+            const divisionRadio = document.querySelector(`input[name="division-method"][value="${divisionMethod}"]`);
+            if (divisionRadio) divisionRadio.checked = true;
+
+            // Custom Percentage
+            document.getElementById('partner-a-percent').value = customA;
+            document.getElementById('partner-b-percent').value = customB;
+            const customFields = document.getElementById('custom-percentage-fields');
+            customFields.classList.toggle('hidden', divisionMethod !== 'Custom');
+
+            // Custom Items List
+            const customList = document.getElementById('custom-items-list');
+            customList.innerHTML = '';
+            ['asset', 'liability', 'income', 'expense'].forEach(type => {
+                const title = type.charAt(0).toUpperCase() + type.slice(1) + 's';
+                const items = appState.accounts[type] || [];
+                customList.innerHTML += `<li class="font-bold text-gray-800 mt-4 border-b border-blue-100 pb-1">${title}</li>`;
+                items.forEach(item => {
+                    customList.innerHTML += `
+                        <li class="flex justify-between items-center text-gray-700 py-2 border-b border-gray-100 last:border-b-0">
+                            <span class="font-medium">${item}</span>
+                            <button class="text-red-500 hover:text-red-700 text-xs delete-custom-btn p-1 rounded-full hover:bg-red-50"
+                                data-type="${type}" data-name="${item}">
+                                <i data-lucide="x" class="w-4 h-4 inline"></i>
+                            </button>
+                        </li>
+                    `;
+                });
+            });
+
+            lucide.createIcons();
+
+            // Attach delete listeners for custom items
+            document.querySelectorAll('.delete-custom-btn').forEach(btn => {
+                btn.onclick = () => showMessageModal(
+                    "Confirm Deletion",
+                    `Are you sure you want to delete the custom item '<strong>${btn.dataset.name}</strong>'?`,
+                    true,
+                    () => deleteCustomAccount(btn.dataset.type, btn.dataset.name)
+                );
+            });
+        };
+
+        // --- REPORT GENERATION ---
+        const generateReport = () => {
+            const transactions = appState.transactions;
+            const startDateStr = document.getElementById('report-date-start').value;
+            const endDateStr = document.getElementById('report-date-end').value;
+            const [partnerA, partnerB] = getPartnerNames();
+            const partnerAShare = getPartnerShare(true);
+
+            const startDate = startDateStr ? new Date(startDateStr) : new Date(0);
+            const endDate = endDateStr ? new Date(endDateStr) : new Date();
+            // Adjust endDate to include the whole day
+            if (endDateStr) endDate.setHours(23, 59, 59, 999);
+
+            let reportTransactions = transactions.filter(t => {
+                const tDate = new Date(t.date.seconds * 1000);
+                return tDate >= startDate && tDate <= endDate;
+            });
+            
+            reportTransactions.sort((a, b) => b.date.seconds - a.date.seconds);
+
+            // 1. Settlement Summary Calculation
+            let totalSharedExpense = 0;
+            let totalPaidA = 0;
+            let totalPaidB = 0;
+
+            reportTransactions.forEach(t => {
+                const tAmount = parseFloat(t.amount);
+                if (t.type === 'Expense' && t.debtType === 'Shared') {
+                    totalSharedExpense += tAmount;
+                    if (t.whoPaid === partnerA) {
+                        totalPaidA += tAmount;
+                    } else if (t.whoPaid === partnerB) {
+                        totalPaidB += tAmount;
+                    }
+                }
+            });
+
+            const expectedShareA = totalSharedExpense * partnerAShare;
+            const expectedShareB = totalSharedExpense * (1 - partnerAShare);
+
+            // If A paid more than their share, B owes A (positive debt).
+            const netDebt = totalPaidA - expectedShareA; 
+
+            let settlementText = '';
+            let settlementColor = 'text-gray-800';
+
+            if (netDebt > 0) {
+                settlementText = `${partnerB} needs to pay ${partnerA} <strong>${formatCurrency(netDebt)}</strong> to balance shared expenses.`;
+                settlementColor = 'text-red-600';
+            } else if (netDebt < 0) {
+                settlementText = `${partnerA} needs to pay ${partnerB} <strong>${formatCurrency(netDebt)}</strong> to balance shared expenses.`;
+                settlementColor = 'text-red-600';
+            } else {
+                settlementText = "Shared expenses are perfectly balanced in this period!";
+                settlementColor = 'text-green-600';
+            }
+
+            const divisionRatio = (partnerAShare * 100).toFixed(0) + '/' + ((1 - partnerAShare) * 100).toFixed(0);
+
+            let summaryHTML = `
+                <div class="space-y-4 text-gray-700">
+                    <p><strong>Division Method:</strong> ${appState.settings.divisionMethod} (${divisionRatio} Split)</p>
+                    <p><strong>Total Shared Expenses:</strong> <span class="font-bold text-gray-900">${formatCurrency(totalSharedExpense)}</span></p>
+                    <hr class="border-gray-100">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="font-semibold">${partnerA} Paid:</p>
+                            <p class="text-xl font-bold text-blue-600">${formatCurrency(totalPaidA)}</p>
+                            <p class="text-sm text-gray-500">Expected: ${formatCurrency(expectedShareA)}</p>
+                        </div>
+                        <div>
+                            <p class="font-semibold">${partnerB} Paid:</p>
+                            <p class="text-xl font-bold text-blue-600">${formatCurrency(totalPaidB)}</p>
+                            <p class="text-sm text-gray-500">Expected: ${formatCurrency(expectedShareB)}</p>
+                        </div>
+                    </div>
+                    <p class="text-lg mt-4 pt-4 border-t font-semibold ${settlementColor}">
+                        <i data-lucide="${netDebt === 0 ? 'award' : 'alert-triangle'}" class="w-5 h-5 inline mr-2"></i>
+                        ${settlementText}
+                    </p>
+                </div>
+            `;
+            document.getElementById('settlement-summary').innerHTML = summaryHTML;
+
+
+            // 2. Category Spending
+            const categorySpending = reportTransactions.reduce((acc, t) => {
+                if (t.type === 'Expense') {
+                    acc[t.category] = (acc[t.category] || 0) + parseFloat(t.amount);
+                }
+                return acc;
+            }, {});
+
+            let totalExpense = Object.values(categorySpending).reduce((sum, amount) => sum + amount, 0);
+
+            let categoryListHTML = '';
+            const categoriesSorted = Object.entries(categorySpending).sort(([, a], [, b]) => b - a);
+
+            categoriesSorted.forEach(([category, amount]) => {
+                const percentage = totalExpense > 0 ? ((amount / totalExpense) * 100).toFixed(1) : 0;
+                categoryListHTML += `
+                    <li>
+                        <div class="flex justify-between text-base">
+                            <span class="font-medium text-gray-800">${category}</span>
+                            <span class="font-semibold text-gray-700">${formatCurrency(amount)}</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                            <div class="bg-red-500 h-2 rounded-full transition-all duration-500" style="width: ${percentage}%" title="${percentage}%"></div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">${percentage}% of total expenses</p>
+                    </li>
+                `;
+            });
+            document.getElementById('category-list').innerHTML = `<ul class="space-y-5">${categoryListHTML || '<p class="text-gray-500">No expenses in this range.</p>'}</ul>`;
+
+
+            // 3. Detailed Transaction Overview (Re-use renderTransactionsTable logic)
+            renderReportTransactionsTable(reportTransactions);
+            lucide.createIcons();
+        };
+
+        const renderReportTransactionsTable = (transactions) => {
+            let tableHTML = `
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead>
+                        <tr>
+                            <th class="table-header w-20">Date</th>
+                            <th class="table-header">Particular</th>
+                            <th class="table-header w-32 text-right">Amount (₱)</th>
+                            <th class="table-header w-32">Who Paid</th>
+                            <th class="table-header w-32">Category</th>
+                            <th class="table-header w-24">Split Type</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-100">
+            `;
+
+            if (transactions.length === 0) {
+                tableHTML += '<tr><td colspan="6" class="text-center py-6 text-gray-500">No transactions match the filter range.</td></tr>';
+            } else {
+                transactions.forEach(t => {
+                    const colorClass = t.type === 'Expense' ? 'peso-color-expense' : 'peso-color-income';
+                    tableHTML += `
+                        <tr class="table-row-hover table-row-zebra">
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${new Date(t.date.seconds * 1000).toLocaleDateString()}</td>
+                            <td class="px-4 py-3 font-medium text-gray-800">${t.particular}</td>
+                            <td class="px-4 py-3 font-bold ${colorClass} text-right">${formatCurrency(t.amount)}</td>
+                            <td class="px-4 py-3 text-sm text-gray-600">${t.whoPaid}</td>
+                            <td class="px-4 py-3 text-sm">${t.category}</td>
+                            <td class="px-4 py-3 text-sm font-semibold text-gray-700">${t.debtType}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            tableHTML += '</tbody></table>';
+            document.getElementById('reports-transactions-table').innerHTML = tableHTML;
+        };
+
+
+        // --- CALENDAR RENDER ---
+
+        let currentCalendarDate = new Date();
+
+        const renderCalendar = () => {
+            const date = new Date(currentCalendarDate); // Use a clone
+            date.setDate(1); // Set to the 1st of the month
+
+            const month = date.getMonth();
+            const year = date.getFullYear();
+
+            document.getElementById('calendar-title').textContent = date.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+
+            const grid = document.getElementById('calendar-grid');
+            grid.innerHTML = ''; // Clear previous grid
+
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            dayNames.forEach(day => {
+                const dayEl = document.createElement('div');
+                dayEl.className = 'text-base font-bold text-gray-600 py-3 border-b';
+                dayEl.textContent = day;
+                grid.appendChild(dayEl);
+            });
+
+            let firstDayIndex = date.getDay();
+
+            // Fill leading empty cells
+            for (let i = 0; i < firstDayIndex; i++) {
+                grid.appendChild(document.createElement('div'));
+            }
+            
+            // Loop through days of the month
+            let displayDate = new Date(year, month, 1);
+            const today = new Date();
+
+            while (displayDate.getMonth() === month) {
+                const day = displayDate.getDate();
+                const dayEl = document.createElement('div');
+                dayEl.className = 'p-2 h-24 border rounded-xl m-1 relative flex flex-col items-center cursor-pointer transition-all bg-white hover:shadow-md';
+                
+                // Highlight today's date
+                if (displayDate.toDateString() === today.toDateString()) {
+                    dayEl.classList.add('bg-blue-100', 'border-blue-500', 'border-2');
+                }
+
+                dayEl.innerHTML = `<span class="text-xl font-bold text-gray-800">${day}</span>`;
+
+                const eventsForDay = appState.upcoming.filter(e => {
+                    const eDate = new Date(e.date.seconds * 1000);
+                    // Check for exact date match
+                    const isExactMatch = eDate.getDate() === day && eDate.getMonth() === month && eDate.getFullYear() === year;
+                    // Check for recurring match: if recurring is true, the recurring day matches, and the current date is after the initial scheduled date
+                    const isRecurring = e.recurring && parseInt(e.recurringDay) === day && (eDate.getTime() <= displayDate.getTime());
+
+                    return isExactMatch || isRecurring;
+                });
+
+                if (eventsForDay.length > 0) {
+                    const iconContainer = document.createElement('div');
+                    iconContainer.className = 'mt-1 space-y-0.5 w-full overflow-hidden flex flex-col items-start px-1';
+                    
+                    // Show a maximum of 3 events/icons
+                    eventsForDay.slice(0, 3).forEach(event => {
+                        iconContainer.innerHTML += `
+                            <p class="text-xs font-semibold text-red-600 truncate w-full" title="${event.particular} - ${formatCurrency(event.amount)}">
+                                <i data-lucide="calendar-x" class="w-3 h-3 inline mr-1"></i> ${formatCurrency(event.amount)}
+                            </p>
+                        `;
+                    });
+                    if (eventsForDay.length > 3) {
+                         iconContainer.innerHTML += `<p class="text-xs text-gray-400">... ${eventsForDay.length - 3} more</p>`;
+                    }
+                    if (!dayEl.classList.contains('bg-blue-100')) {
+                        dayEl.classList.add('bg-red-50'); // Highlight days with events
+                    }
+                    dayEl.onclick = () => showDayEvents(day, month, year, eventsForDay);
+                    dayEl.appendChild(iconContainer);
+                }
+
+                grid.appendChild(dayEl);
+                displayDate.setDate(displayDate.getDate() + 1);
+            }
+
+            // Fill trailing empty cells
+            let lastDayIndex = (displayDate.getDay() - 1 + 7) % 7; // Index of the last day filled
+            if (lastDayIndex !== 6) { // If the month didn't end on Saturday
+                let nextEmptyCell = lastDayIndex + 1;
+                for (let i = nextEmptyCell; i < 7; i++) {
+                    const emptyEl = document.createElement('div');
+                    emptyEl.className = 'bg-gray-50 border rounded-xl m-1';
+                    grid.appendChild(emptyEl);
+                }
+            }
+
+            renderUpcomingList();
+            lucide.createIcons();
+        };
+
+        const showDayEvents = (day, month, year, events) => {
+            const dateStr = new Date(year, month, day).toLocaleDateString();
+            let message = `<h5 class="font-bold text-lg mb-3">Upcoming for ${dateStr}:</h5><ul class="space-y-3">`;
+            events.forEach(e => {
+                const recurringText = e.recurring ? ` (<span class="text-blue-600">Monthly on Day ${e.recurringDay}</span>)` : '';
+                message += `<li class="border-b pb-2"><span class="font-semibold text-gray-800">${e.particular}:</span> <span class="peso-color-expense font-bold">${formatCurrency(e.amount)}</span> ${recurringText}</li>`;
+            });
+            message += `</ul>`;
+            showMessageModal(`Events on ${dateStr}`, message);
+        };
+
+        const renderUpcomingList = () => {
+            const list = document.getElementById('upcoming-list');
+            list.innerHTML = '';
+            const sortedUpcoming = [...appState.upcoming].sort((a, b) => a.date.seconds - b.date.seconds);
+
+            if (sortedUpcoming.length === 0) {
+                list.innerHTML = '<li class="text-gray-500 italic p-3 bg-gray-50 rounded-lg">No upcoming expenses scheduled.</li>';
+                return;
+            }
+
+            sortedUpcoming.forEach(item => {
+                const date = new Date(item.date.seconds * 1000).toLocaleDateString();
+                const recurringText = item.recurring ? ` (Recur Day ${item.recurringDay})` : ` (${date})`;
+
+                list.innerHTML += `
+                    <li class="flex justify-between items-center bg-gray-50 p-3 rounded-xl text-base shadow-sm hover:bg-white transition-colors">
+                        <div>
+                            <p class="font-bold text-gray-800">${item.particular}</p>
+                            <p class="text-gray-600 text-sm font-medium">${formatCurrency(item.amount)} <span class="text-xs text-blue-500">${recurringText}</span></p>
+                        </div>
+                        <button class="text-red-500 hover:text-red-700 text-xs delete-upcoming-btn p-1 rounded-full hover:bg-red-100 transition-colors"
+                                data-id="${item.id}">
+                            <i data-lucide="trash-2" class="w-4 h-4 inline"></i>
+                        </button>
+                    </li>
+                `;
+            });
+
+            // Attach delete listeners
+            document.querySelectorAll('.delete-upcoming-btn').forEach(btn => {
+                btn.onclick = () => showMessageModal(
+                    "Confirm Deletion",
+                    "Are you sure you want to delete this scheduled expense?",
+                    true,
+                    () => deleteUpcomingExpense(btn.dataset.id)
+                );
+            });
+        };
+
+        // --- FIREBASE LISTENERS ---
+
+        const setupDataListeners = () => {
+            if (!userId) return;
+
+            // 1. Settings Listener
+            onSnapshot(doc(db, getSettingsPath()), (docSnap) => {
+                if (docSnap.exists()) {
+                    appState.settings = { ...appState.settings, ...docSnap.data() };
+                }
+                renderApp();
+            }, (error) => console.error("Settings Listener Error: ", error));
+
+            // 2. Custom Accounts Listener
+            onSnapshot(doc(db, getCustomAccountsPath()), (docSnap) => {
+                if (docSnap.exists()) {
+                    appState.accounts = { ...appState.accounts, ...docSnap.data() };
+                }
+                renderApp();
+            }, (error) => console.error("Accounts Listener Error: ", error));
+
+            // 3. Transactions Listener
+            const qTransactions = query(getTransactionsColRef(), where("timestamp", ">", new Timestamp(0, 0)));
+            onSnapshot(qTransactions, (snapshot) => {
+                appState.transactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                // Default sort: Newest first
+                appState.transactions.sort((a, b) => b.date.seconds - a.date.seconds);
+                appState.filteredTransactions = appState.transactions; // Reset filtered list
+                renderApp();
+            }, (error) => console.error("Transactions Listener Error: ", error));
+
+            // 4. Upcoming Listener
+            const qUpcoming = query(getUpcomingColRef(), where("timestamp", ">", new Timestamp(0, 0)));
+            onSnapshot(qUpcoming, (snapshot) => {
+                appState.upcoming = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderApp();
+            }, (error) => console.error("Upcoming Listener Error: ", error));
+        };
+
+        // --- AUTH & INITIALIZATION ---
+
+        const handleAuth = async (isSignup) => {
+            const email = document.getElementById('email-input').value;
+            const password = document.getElementById('password-input').value;
+            const msgEl = document.getElementById('auth-message');
+            msgEl.textContent = '';
+            if (!email || !password) {
+                msgEl.textContent = "Please enter both email and password.";
+                return;
+            }
+
+            updateLoading(true);
+            try {
+                if (isSignup) {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                } else {
+                    await signInWithEmailAndPassword(auth, email, password);
+                }
+            } catch (error) {
+                const errorMessage = error.message.replace('Firebase: Error (auth/', '').replace(').', '').replace(/-/g, ' ').toUpperCase();
+                msgEl.textContent = `Authentication Failed: ${errorMessage}`;
+            } finally {
+                updateLoading(false);
+            }
+        };
+
+        // REMAINS AS THE PRIMARY AUTH STATE OBSERVER
+        onAuthStateChanged(auth, (user) => {
+            updateLoading(true);
+            if (user) {
+                userId = user.uid;
+                renderAuthScreen(false); // Hide login, show app
+                setupDataListeners();
+            } else {
+                // If user logs out or initial auth fails, show login screen
+                userId = null;
+                renderAuthScreen(true);
+            }
+            updateLoading(false);
+        });
+        
+        // NEW FUNCTION: Handles the mandatory initial sign-in in the Canvas environment
+        const initializeAuthAndApp = async () => {
+            updateLoading(true);
+            try {
+                // Use the provided initial token if available, otherwise sign in anonymously
+                if (typeof __initial_auth_token !== 'undefined') {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                // onAuthStateChanged will handle the subsequent UI and data setup
+            } catch (e) {
+                // If initial sign-in fails (e.g., expired/mismatch token), 
+                // onAuthStateChanged will receive null user, prompting manual login.
+                console.error("Initial Auth attempt failed: ", e);
+                updateLoading(false);
+            }
+        };
+
+
+        const setupEventListeners = () => {
+            // Auth Buttons
+            document.getElementById('login-button').onclick = () => handleAuth(false);
+            document.getElementById('signup-button').onclick = () => handleAuth(true);
+            document.getElementById('logout-button').onclick = () => signOut(auth);
+
+            // Navigation
+            document.querySelectorAll('.nav-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    const sectionId = button.dataset.section;
+                    appState.currentView = sectionId;
+
+                    document.querySelectorAll('.app-section').forEach(section => {
+                        section.classList.add('hidden');
+                    });
+                    document.getElementById(`${sectionId}-section`).classList.remove('hidden');
+
+                    document.querySelectorAll('.nav-button').forEach(nav => {
+                        nav.classList.remove('ios-tab-active', 'text-gray-900');
+                        nav.classList.add('text-gray-600', 'hover:bg-gray-100');
+                    });
+                    button.classList.add('ios-tab-active', 'text-gray-900');
+                    button.classList.remove('text-gray-600', 'hover:bg-gray-100');
+
+                    if (sectionId === 'reports') generateReport();
+                    if (sectionId === 'calendar') renderCalendar();
+                });
+            });
+
+            // Tracker Form Submission
+            document.getElementById('expense-form').onsubmit = async (e) => {
+                e.preventDefault();
+                const form = e.target;
+                const data = {
+                    date: form['expense-date'].value,
+                    amount: parseFloat(form['expense-amount'].value),
+                    type: form['expense-type'].value,
+                    category: form['expense-category'].value,
+                    particular: form['expense-particular'].value,
+                    whoPaid: form['expense-who-paid'].value,
+                    debtType: form['expense-debt-type'].value,
+                    account: form['expense-account'].value,
+                };
+                
+                if (data.type === 'Income' && (data.debtType === 'Shared' || data.debtType === 'Personal')) {
+                    showMessageModal("Input Error", "Income should not be logged as a Shared or Personal *Expense*. Please use 'Debt Payment' for income transactions.");
+                    return;
+                }
+
+                await addTransaction(data);
+            };
+
+            // Transaction Filter/Sort
+            document.getElementById('filter-particular').oninput = filterAndSortTransactions;
+            document.getElementById('filter-date-start').onchange = filterAndSortTransactions;
+            document.getElementById('filter-date-end').onchange = filterAndSortTransactions;
+            document.getElementById('sort-by').onchange = filterAndSortTransactions;
+
+            // Settings Form
+            document.getElementById('partner-settings-form').onsubmit = async (e) => {
+                e.preventDefault();
+                const form = e.target;
+                const method = form.elements['division-method'].value;
+                const customA = parseFloat(form['partner-a-percent'].value);
+                const customB = parseFloat(form['partner-b-percent'].value);
+
+                if (method === 'Custom' && (customA + customB !== 100)) {
+                    document.getElementById('custom-percent-error').classList.remove('hidden');
+                    return;
+                }
+                document.getElementById('custom-percent-error').classList.add('hidden');
+
+                const newSettings = {
+                    partnerA: form['partner-a-name'].value,
+                    partnerB: form['partner-b-name'].value,
+                    incomeA: parseFloat(form['partner-a-income'].value) || 0,
+                    incomeB: parseFloat(form['partner-b-income'].value) || 0,
+                    divisionMethod: method,
+                    customA: customA || 0,
+                    customB: customB || 0,
+                };
+
+                await saveSettings(newSettings);
+                showMessageModal("Success", "Partner and Division settings saved successfully.");
+            };
+
+            // Settings Radio Toggle
+            document.querySelectorAll('input[name="division-method"]').forEach(radio => {
+                radio.onchange = (e) => {
+                    document.getElementById('custom-percentage-fields').classList.toggle('hidden', e.target.value !== 'Custom');
+                };
+            });
+
+            // Custom Account Form
+            document.getElementById('custom-type-form').onsubmit = async (e) => {
+                e.preventDefault();
+                const type = document.getElementById('custom-type-select').value;
+                const name = document.getElementById('custom-type-name').value;
+                await saveCustomAccounts(type, name);
+            };
+
+            // Report Buttons
+            document.getElementById('generate-report-button').onclick = generateReport;
+            document.getElementById('print-report-button').onclick = () => window.print();
+
+            // Calendar Navigation
+            document.getElementById('calendar-prev').onclick = () => {
+                currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+                renderCalendar();
+            };
+            document.getElementById('calendar-next').onclick = () => {
+                currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+                renderCalendar();
+            };
+
+            // Calendar Recurring Checkbox
+            document.getElementById('upcoming-recurring').onchange = (e) => {
+                document.getElementById('recurring-settings').classList.toggle('hidden', !e.target.checked);
+            };
+
+            // Populate Recurring Days
+            const recurringDaySelect = document.getElementById('recurring-day');
+            for (let i = 1; i <= 31; i++) {
+                recurringDaySelect.innerHTML += `<option value="${i}">${i}</option>`;
+            }
+
+            // Upcoming Form Submission
+            document.getElementById('upcoming-form').onsubmit = async (e) => {
+                e.preventDefault();
+                const form = e.target;
+                const isRecurring = form['upcoming-recurring'].checked;
+                const data = {
+                    particular: form['upcoming-particular'].value,
+                    amount: parseFloat(form['upcoming-amount'].value),
+                    date: form['upcoming-date'].value,
+                    recurring: isRecurring,
+                    recurringDay: isRecurring ? parseInt(form['recurring-day'].value) : null
+                };
+                await addUpcomingExpense(data);
+            };
+        };
+
+        // --- INITIALIZATION ---
+
+        // Run setup functions
+        document.addEventListener('DOMContentLoaded', () => {
+            setupEventListeners();
+            lucide.createIcons();
+            // Start the mandatory initial authentication flow
+            initializeAuthAndApp(); 
+        });
+
+    </script>
+</body>
+</html>
