@@ -19,6 +19,10 @@
             --ios-bg: #F2F2F7; /* Very light background for the whole page */
         }
         
+        html {
+            scroll-behavior: smooth;
+        }
+
         body {
             font-family: 'Inter', sans-serif;
             background-color: var(--ios-bg);
@@ -56,9 +60,14 @@
             font-weight: 600;
             transition: background-color 0.2s;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
         }
         .ios-button:hover {
             background-color: #007AFF; /* Slightly darker on hover */
+        }
+        .ios-button:disabled {
+            background-color: #D1D1D6;
+            cursor: not-allowed;
         }
 
         /* Navigation/Tab Styles */
@@ -102,39 +111,90 @@
             width: 280px; /* Slightly wider sidebar */
             min-width: 280px;
         }
-        
-        /* Calendar pill styles */
-        .calendar-pill {
-            display: flex;
-            align-items: center;
-            font-size: 11px;
-            font-weight: 600;
-            border-radius: 9999px;
-            padding: 2px 8px;
-            width: 100%;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+        .app-section {
+            padding-bottom: 100px; /* Padding for mobile nav */
         }
 
-        /* Responsive adjustments for mobile view */
+        /* Settings Accordion */
+        .accordion-header {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .accordion-header:hover {
+            background-color: #F8F8F8;
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        .accordion-content.open {
+            max-height: 500px; /* Adjust as needed */
+            overflow-y: auto;
+        }
+
+        /* Mobile Responsive adjustments */
         @media (max-width: 1024px) {
             .sidebar {
                 width: 100%;
-                height: auto;
-                position: static;
-                border-bottom: 1px solid #D1D1D6;
+                height: 70px; /* Fixed height for bottom bar */
+                position: fixed; /* Stick to bottom */
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background-color: white;
+                border-top: 1px solid #D1D1D6;
+                box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+                padding: 8px;
+                z-index: 50;
+                overflow: hidden; /* Hide overflow */
             }
+            .sidebar-header, .sidebar-footer {
+                display: none; /* Hide Title and Logout on mobile */
+            }
+            .sidebar nav {
+                display: flex;
+                flex-direction: row; /* Horizontal layout */
+                justify-content: space-around; /* Evenly space items */
+                align-items: center;
+                height: 100%;
+                gap: 2px;
+                margin-top: 0;
+            }
+            .nav-button {
+                flex-direction: column; /* Stack icon and text */
+                padding: 6px 4px;
+                border-radius: 12px;
+                flex: 1; /* Each button takes equal space */
+                font-size: 11px; /* Smaller text */
+                font-weight: 500;
+                gap: 2px;
+            }
+            .nav-button i {
+                margin: 0; /* Remove right margin from icon */
+                width: 22px;
+                height: 22px;
+            }
+            .ios-tab-active {
+                background-color: transparent;
+                color: var(--ios-blue) !important;
+                font-weight: 600;
+            }
+
             #main-app {
                 flex-direction: column;
             }
             .app-section {
                 padding: 16px;
+                padding-bottom: 100px; /* Ensure content clears bottom nav */
+            }
+            main {
+                padding: 0 !important; /* Remove main padding on mobile */
             }
         }
     </style>
 </head>
-<body>
+<body class="bg-gray-100">
     <div id="app" class="min-h-screen">
         <!-- Loading Overlay -->
         <div id="loading-overlay" class="loading-overlay hidden">
@@ -162,7 +222,9 @@
         <div id="main-app" class="hidden flex lg:flex-row flex-col">
             <!-- Sidebar Navigation -->
             <div class="sidebar bg-white border-r border-gray-200 p-6 lg:sticky top-0 h-auto lg:h-screen overflow-y-auto">
-                <h1 class="text-3xl font-extrabold mb-10 text-center text-gray-900">CoupleTrack</h1>
+                <div class="sidebar-header">
+                    <h1 class="text-3xl font-extrabold mb-10 text-center text-gray-900">CoupleTrack</h1>
+                </div>
 
                 <nav class="space-y-2">
                     <button data-section="tracker" class="nav-button w-full flex items-center p-3 rounded-xl transition-colors text-gray-600 ios-tab-active">
@@ -183,7 +245,7 @@
                     </button>
                 </nav>
 
-                <div class="mt-12 pt-6 border-t border-gray-200">
+                <div class="sidebar-footer mt-12 pt-6 border-t border-gray-200">
                     <div id="user-info" class="text-sm text-gray-500 mb-4 truncate"></div>
                     <button id="logout-button" class="ios-button w-full bg-red-500 hover:bg-red-600 text-sm flex items-center justify-center">
                         <i data-lucide="log-out" class="w-4 h-4 inline mr-2"></i>
@@ -206,7 +268,8 @@
                     <!-- New Transaction Form -->
                     <div class="ios-card mb-10">
                         <h3 class="text-2xl font-bold mb-6 border-b pb-3 text-gray-800">Log New Transaction</h3>
-                        <form id="expense-form" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <!-- Cleaned-up grid layout -->
+                        <form id="expense-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             
                             <div class="lg:col-span-2">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Particulars / Description</label>
@@ -226,7 +289,6 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
                                 <select id="expense-type" class="ios-select w-full" required>
-                                    <option value="" disabled selected>Txn Type</option>
                                     <option value="Expense">Expense</option>
                                     <option value="Income">Income</option>
                                 </select>
@@ -253,7 +315,8 @@
                                 </select>
                             </div>
 
-                            <div>
+                            <!-- This field will be shown/hidden dynamically -->
+                            <div id="debt-type-wrapper">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Debt Handling</label>
                                 <select id="expense-debt-type" class="ios-select w-full" required>
                                     <option value="Shared">Shared Expense (Split)</option>
@@ -262,7 +325,7 @@
                                 </select>
                             </div>
 
-                            <button type="submit" class="ios-button lg:col-span-4 mt-4 flex items-center justify-center">
+                            <button type="submit" class="ios-button md:col-span-2 lg:col-span-3 mt-4 flex items-center justify-center">
                                 <i data-lucide="plus-circle" class="w-5 h-5 mr-2"></i>
                                 Add Transaction
                             </button>
@@ -358,7 +421,7 @@
 
                 <!-- Calendar Section -->
                 <section id="calendar-section" class="app-section hidden">
-                    <h2 class="text-4xl font-extrabold mb-8 text-gray-900">Financial Calendar</h2>
+                    <h2 class="text-4xl font-extrabold mb-8 text-gray-900">Upcoming Expenses & Calendar</h2>
 
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div class="ios-card lg:col-span-2 p-0">
@@ -398,8 +461,8 @@
                             </form>
 
                             <div class="mt-8 pt-6 border-t">
-                                <h4 class="text-xl font-bold mb-3 text-gray-800">Scheduled Items List</h4>
-                                <ul id="upcoming-list" class="space-y-3 max-h-60 overflow-y-auto">
+                                <h4 class="text-xl font-bold mb-3 text-gray-800">Scheduled Items</h4>
+                                <ul id="upcoming-list" class="space-y-3">
                                     <!-- Upcoming items list injected here -->
                                 </ul>
                             </div>
@@ -411,6 +474,7 @@
                 <section id="settings-section" class="app-section hidden">
                     <h2 class="text-4xl font-extrabold mb-8 text-gray-900">Settings & Configuration</h2>
 
+                    <!-- Updated grid layout: Stacks on mobile, splits on desktop -->
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                         <!-- Partner Details & Division -->
@@ -423,8 +487,8 @@
                                         <input type="text" id="partner-a-name" placeholder="Partner A Name" class="ios-input w-full" required>
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Partner A Monthly Income (₱)</label>
-                                        <input type="number" id="partner-a-income" placeholder="0" class="ios-input w-full" required min="0">
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Partner A Standing Balance (₱)</label>
+                                        <input type="number" id="partner-a-balance" placeholder="0" class="ios-input w-full" required min="0">
                                     </div>
 
                                     <div>
@@ -432,13 +496,14 @@
                                         <input type="text" id="partner-b-name" placeholder="Partner B Name" class="ios-input w-full" required>
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Partner B Monthly Income (₱)</label>
-                                        <input type="number" id="partner-b-income" placeholder="0" class="ios-input w-full" required min="0">
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Partner B Standing Balance (₱)</label>
+                                        <input type="number" id="partner-b-balance" placeholder="0" class="ios-input w-full" required min="0">
                                     </div>
                                 </div>
 
                                 <fieldset class="mt-4 p-5 border border-gray-200 rounded-xl">
                                     <legend class="text-lg font-bold text-gray-900 px-2">Shared Expense Split Method</legend>
+                                    <p class="text-sm text-gray-500 mb-4 px-2">This is calculated dynamically based on current Standing Balances.</p>
                                     <div class="mt-4 space-y-3">
                                         <label class="flex items-center">
                                             <input type="radio" name="division-method" value="50/50" class="h-5 w-5 text-blue-600">
@@ -446,7 +511,7 @@
                                         </label>
                                         <label class="flex items-center">
                                             <input type="radio" name="division-method" value="Proportional" class="h-5 w-5 text-blue-600">
-                                            <span class="ml-3 text-base font-medium text-gray-700">Proportional (Based on Income)</span>
+                                            <span class="ml-3 text-base font-medium text-gray-700">Proportional (Based on Standing Balance)</span>
                                         </label>
                                         <label class="flex items-center">
                                             <input type="radio" name="division-method" value="Custom" class="h-5 w-5 text-blue-600">
@@ -475,14 +540,14 @@
                         </div>
 
                         <!-- Custom Accounts & Types -->
-                        <div class="ios-card">
+                        <div class="ios-card lg:col-span-1">
                             <h3 class="text-2xl font-bold mb-4 border-b pb-3 text-gray-800">Manage Custom Categories</h3>
                             <form id="custom-type-form" class="space-y-4">
                                 <select id="custom-type-select" class="ios-select w-full">
                                     <option value="asset">Asset Account</option>
                                     <option value="liability">Liability Account</option>
-                                    <option value="income">Income Type</option>
-                                    <option value="expense">Expense Type</option>
+                                    <option value="income">Income Category</option>
+                                    <option value="expense">Expense Category</option>
                                 </select>
                                 <input type="text" id="custom-type-name" placeholder="New Item Name (e.g., Groceries)" class="ios-input w-full" required>
                                 <button type="submit" class="ios-button w-full bg-green-500 hover:bg-green-600 flex items-center justify-center">
@@ -493,9 +558,10 @@
 
                             <div class="mt-6 pt-6 border-t">
                                 <h4 class="text-xl font-bold mb-3 text-gray-800">Current Custom Items</h4>
-                                <ul id="custom-items-list" class="space-y-3 text-sm">
-                                    <!-- Custom items injected here -->
-                                </ul>
+                                <!-- Accordion structure for custom items -->
+                                <div id="custom-items-accordion" class="space-y-2">
+                                    <!-- Accordion items will be injected here -->
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -548,14 +614,7 @@
         setLogLevel('Debug');
 
         // --- GLOBAL CONFIG & INIT ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyA3Pi_BB5D_uDq9yNYraGyCxg_JukNp66k",
-            authDomain: "studio-2523816271-96710.firebaseapp.com",
-            projectId: "studio-2523816271-96710",
-            storageBucket: "studio-2523816271-96710.firebasestorage.app",
-            messagingSenderId: "79405504947",
-            appId: "1:79405504947:web:69b9ac42b50098cec713c6"
-        };
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
@@ -571,12 +630,13 @@
             settings: {
                 partnerA: "Partner A",
                 partnerB: "Partner B",
-                incomeA: 0,
-                incomeB: 0,
-                divisionMethod: "50/50", // 50/50, Proportional, Custom
+                // Store the *initial* balances set by the user
+                initialStandingBalanceA: 0,
+                initialStandingBalanceB: 0,
+                divisionMethod: "Proportional", // 50/50, Proportional, Custom
                 customA: 50,
                 customB: 50,
-                currentDebt: 0, // B owes A (positive) or A owes B (negative)
+                // 'currentDebt' is now calculated live, not stored in settings.
             },
             accounts: {
                 asset: ["Cash", "Bank", "Savings"],
@@ -588,6 +648,12 @@
             upcoming: [],
             currentView: "tracker",
             filteredTransactions: [],
+            // Live calculated values
+            liveState: {
+                currentDebt: 0,
+                standingBalanceA: 0,
+                standingBalanceB: 0,
+            }
         };
 
         // --- UTILITY FUNCTIONS ---
@@ -606,18 +672,14 @@
             if (isConfirm) {
                 confirmBtn.classList.remove('hidden');
                 cancelBtn.classList.remove('hidden');
-                cancelBtn.textContent = 'Cancel'; // Ensure cancel button text is correct
-                cancelBtn.classList.add('bg-gray-400', 'hover:bg-gray-500');
-                cancelBtn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
-                
                 confirmBtn.onclick = () => { onConfirm(); modal.classList.add('hidden'); };
                 cancelBtn.onclick = () => { modal.classList.add('hidden'); };
             } else {
                 confirmBtn.classList.add('hidden');
                 cancelBtn.classList.remove('hidden');
                 cancelBtn.textContent = 'Close';
-                cancelBtn.classList.add('bg-blue-500', 'hover:bg-blue-600');
                 cancelBtn.classList.remove('bg-gray-400', 'hover:bg-gray-500');
+                cancelBtn.classList.add('ios-button');
                 cancelBtn.onclick = () => { modal.classList.add('hidden'); };
             }
 
@@ -630,49 +692,109 @@
 
         const getPartnerNames = () => [appState.settings.partnerA, appState.settings.partnerB];
 
-        const getPartnerShare = (isPartnerA) => {
-            const { incomeA, incomeB, divisionMethod, customA, customB } = appState.settings;
-            let share = 0.5; // Default 50/50
+        /**
+         * Gets the partner share for a shared expense.
+         * This is now dynamic based on current standing balances.
+         * @param {string} divisionMethod - The method from settings.
+         * @param {number} balanceA - Partner A's current standing balance.
+         * @param {number} balanceB - Partner B's current standing balance.
+         * @returns {object} { shareA: number, shareB: number }
+         */
+        const getPartnerShare = (divisionMethod, balanceA, balanceB) => {
+            let shareA = 0.5;
+            let shareB = 0.5;
 
             if (divisionMethod === "Proportional") {
-                const totalIncome = incomeA + incomeB;
-                if (totalIncome > 0) {
-                    share = isPartnerA ? (incomeA / totalIncome) : (incomeB / totalIncome);
+                const totalBalance = balanceA + balanceB;
+                if (totalBalance > 0) {
+                    shareA = balanceA / totalBalance;
+                    shareB = balanceB / totalBalance;
                 }
             } else if (divisionMethod === "Custom") {
-                share = isPartnerA ? (customA / 100) : (customB / 100);
+                shareA = appState.settings.customA / 100;
+                shareB = appState.settings.customB / 100;
             }
-            return share;
+            return { shareA, shareB };
         };
 
         /**
-         * Calculates the debt adjustment for a single shared expense transaction.
-         * Debt is relative to Partner B owing Partner A.
-         * Positive result means B owes A. Negative means A owes B.
-         * @param {number} amount - The total expense amount.
-         * @param {string} whoPaid - The name of the partner who paid.
-         * @returns {number} The change in debt.
+         * NEW CORE LOGIC: Recalculates the *entire* debt history and standing balances.
+         * This is called every time a transaction is added or deleted.
          */
-        const calculateDebtAdjustment = (amount, whoPaid) => {
-            const isPartnerAPaid = whoPaid === appState.settings.partnerA;
-            const partnerAShare = getPartnerShare(true);
+        const recalculateFullDebtHistory = () => {
+            let debt = 0; // B owes A (positive) or A owes B (negative)
+            let balanceA = appState.settings.initialStandingBalanceA;
+            let balanceB = appState.settings.initialStandingBalanceB;
+            
+            const [partnerA, partnerB] = getPartnerNames();
 
-            // A's target share is what A should have paid.
-            const partnerATargetShare = amount * partnerAShare;
+            // Sort transactions by date, oldest first, to process in order
+            const sortedTransactions = [...appState.transactions].sort((a, b) => a.date.seconds - b.date.seconds);
 
-            // B's target share is what B should have paid.
-            const partnerBTargetShare = amount * (1 - partnerAShare);
+            sortedTransactions.forEach(t => {
+                const amount = parseFloat(t.amount);
+                
+                if (t.type === 'Income') {
+                    // Income adds to the standing balance of the person who received it
+                    if (t.whoPaid === partnerA) {
+                        balanceA += amount;
+                    } else if (t.whoPaid === partnerB) {
+                        balanceB += amount;
+                    }
+                } else if (t.type === 'Expense') {
+                    if (t.debtType === 'Personal') {
+                        // Personal expense deducts from the standing balance of the payer
+                        if (t.whoPaid === partnerA) {
+                            balanceA -= amount;
+                        } else if (t.whoPaid === partnerB) {
+                            balanceB -= amount;
+                        }
+                    } else if (t.debtType === 'Shared') {
+                        // Shared expense calculates debt based on *current* standing balances
+                        const { shareA, shareB } = getPartnerShare(appState.settings.divisionMethod, balanceA, balanceB);
+                        
+                        const partnerATargetShare = amount * shareA;
+                        const partnerBTargetShare = amount * shareB;
 
-            if (isPartnerAPaid) {
-                // A paid the whole amount.
-                // B owes A B's target share. (Positive debt for B)
-                return partnerBTargetShare;
-            } else {
-                // B paid the whole amount.
-                // A owes B A's target share. (Negative debt for B, positive for A)
-                return -partnerATargetShare;
-            }
+                        if (t.whoPaid === partnerA) {
+                            // A paid. B owes A their share.
+                            debt += partnerBTargetShare;
+                            // ** NEW LOGIC: Shared expenses also deduct from payer's balance
+                            balanceA -= amount;
+                        } else if (t.whoPaid === partnerB) {
+                            // B paid. A owes B their share. (Negative debt for B)
+                            debt -= partnerATargetShare;
+                            // ** NEW LOGIC: Shared expenses also deduct from payer's balance
+                            balanceB -= amount;
+                        }
+                    } else if (t.debtType === 'DebtPayment') {
+                        // Process reconciliation payments. These directly adjust the debt.
+                        if (t.whoPaid === partnerA) {
+                            // A paid B. This settles A's debt (which is negative).
+                            debt += amount;
+                            // ** NEW LOGIC: Adjust balances for the cash transfer
+                            balanceA -= amount; // Payer
+                            balanceB += amount; // Receiver
+                        } else if (t.whoPaid === partnerB) {
+                            // B paid A. This settles B's debt (which is positive).
+                            debt -= amount;
+                            // ** NEW LOGIC: Adjust balances for the cash transfer
+                            balanceB -= amount; // Payer
+                            balanceA += amount; // Receiver
+                        }
+                    }
+                }
+            });
+
+            // Update the live state
+            appState.liveState.currentDebt = debt;
+            appState.liveState.standingBalanceA = balanceA;
+            appState.liveState.standingBalanceB = balanceB;
+
+            // Re-render relevant UI components
+            renderTrackerSummary();
         };
+
 
         // --- FIREBASE PATHS & CRUD ---
 
@@ -684,8 +806,18 @@
         const saveSettings = async (data) => {
             if (!userId) return;
             try {
-                await setDoc(doc(db, getSettingsPath()), data, { merge: true });
-                // Don't show success here, let the onSnapshot handle UI updates
+                // We only save the *initial* balances to settings
+                const settingsToSave = {
+                    partnerA: data.partnerA,
+                    partnerB: data.partnerB,
+                    initialStandingBalanceA: data.initialStandingBalanceA,
+                    initialStandingBalanceB: data.initialStandingBalanceB,
+                    divisionMethod: data.divisionMethod,
+                    customA: data.customA,
+                    customB: data.customB,
+                };
+                await setDoc(doc(db, getSettingsPath()), settingsToSave, { merge: true });
+                // onSnapshot will trigger a recalculation
             } catch (e) {
                 console.error("Error saving settings: ", e);
                 showMessageModal("Error", "Failed to save settings. Check console for details.");
@@ -698,39 +830,26 @@
                 const docRef = await addDoc(getTransactionsColRef(), {
                     ...data,
                     timestamp: Timestamp.now(),
-                    date: Timestamp.fromDate(new Date(data.date))
+                    date: Timestamp.fromDate(data.date) // Use the JS Date object
                 });
 
-                // Update total debt if it was a shared expense
-                if (data.debtType === "Shared" && data.type === "Expense") {
-                    const adjustment = calculateDebtAdjustment(data.amount, data.whoPaid);
-                    await updateDoc(doc(db, getSettingsPath()), {
-                        currentDebt: appState.settings.currentDebt + adjustment
-                    });
-                } else if (data.debtType === "DebtPayment") {
-                     // We simplified: only update debt on reconciliation, DebtPayment is just a log of money transfer.
-                }
-
+                // The onSnapshot listener will pick this up, add it to appState.transactions,
+                // and then trigger recalculateFullDebtHistory()
                 document.getElementById('expense-form').reset();
+                // Manually trigger category dropdown update
+                updateCategoryDropdown(document.getElementById('expense-type').value);
             } catch (e) {
                 console.error("Error adding transaction: ", e);
                 showMessageModal("Error", "Failed to add transaction.");
             }
         };
 
-        const deleteTransaction = async (id, isSharedExpense, amount, whoPaid, type) => {
+        const deleteTransaction = async (id) => {
             if (!userId) return;
             try {
                 await deleteDoc(doc(getTransactionsColRef(), id));
-
-                // Recalculate debt only if it was a shared expense/income
-                if (isSharedExpense && type === "Expense") {
-                    const adjustment = calculateDebtAdjustment(amount, whoPaid);
-                    // Deleting the transaction reverses the debt adjustment
-                    await updateDoc(doc(db, getSettingsPath()), {
-                        currentDebt: appState.settings.currentDebt - adjustment
-                    });
-                }
+                // The onSnapshot listener will pick this up, remove it from appState.transactions,
+                // and then trigger recalculateFullDebtHistory()
             } catch (e) {
                 console.error("Error deleting transaction: ", e);
                 showMessageModal("Error", "Failed to delete transaction.");
@@ -742,8 +861,9 @@
             try {
                 await addDoc(getUpcomingColRef(), {
                     ...data,
+                    completed: false, // Default to not completed
                     timestamp: Timestamp.now(),
-                    date: Timestamp.fromDate(new Date(data.date))
+                    date: Timestamp.fromDate(data.date) // Use JS Date
                 });
                 document.getElementById('upcoming-form').reset();
             } catch (e) {
@@ -762,6 +882,19 @@
             }
         };
 
+        // New function to toggle completion status of a scheduled item
+        const toggleUpcomingCompletion = async (id, currentStatus) => {
+            if (!userId) return;
+            try {
+                await updateDoc(doc(getUpcomingColRef(), id), {
+                    completed: !currentStatus
+                });
+            } catch (e) {
+                console.error("Error updating upcoming item: ", e);
+                showMessageModal("Error", "Failed to update item status.");
+            }
+        };
+
         const saveCustomAccounts = async (type, name) => {
             if (!userId) return;
             try {
@@ -769,15 +902,8 @@
                 const existingItems = appState.accounts[type] || [];
 
                 if (!existingItems.includes(trimmedName) && trimmedName !== "") {
-                    // FIX: Use spread operator to ensure non-mutating array creation and correctly update state
                     const newItems = [...existingItems, trimmedName];
-
-                    // Construct the update payload for Firestore, only updating the specific type array
-                    const updatedAccounts = {
-                        [type]: newItems
-                    };
-
-                    // Use setDoc with merge:true on the document
+                    const updatedAccounts = { [type]: newItems };
                     await setDoc(doc(db, getCustomAccountsPath()), updatedAccounts, { merge: true });
                     document.getElementById('custom-type-name').value = '';
                 }
@@ -791,14 +917,8 @@
             if (!userId) return;
             try {
                 const currentItems = appState.accounts[type] || [];
-                
-                // Filter creates a new array, no mutation issue here
                 const updatedItems = currentItems.filter(item => item !== name);
-                
-                // Construct payload to update only the relevant field
                 const updatedAccounts = { [type]: updatedItems }; 
-
-                // Use setDoc with merge:true for robust updating
                 await setDoc(doc(db, getCustomAccountsPath()), updatedAccounts, { merge: true });
             } catch (e) {
                 console.error("Error deleting custom item: ", e);
@@ -813,11 +933,34 @@
             document.getElementById('main-app').classList.toggle('hidden', show);
         };
 
+        /**
+         * Dynamically filters the category dropdown based on transaction type.
+         * @param {string} type - 'Income' or 'Expense'
+         */
+        const updateCategoryDropdown = (type) => {
+            const expenseCategorySelect = document.getElementById('expense-category');
+            const currentCat = expenseCategorySelect.value;
+            let categories = [];
+
+            if (type === 'Income') {
+                categories = appState.accounts.income;
+            } else { // Default to Expense
+                categories = appState.accounts.expense;
+            }
+
+            expenseCategorySelect.innerHTML = `<option value="" disabled selected>Select Category</option>` +
+                                              categories.map(c => `<option value="${c}">${c}</option>`).join('');
+            
+            // Try to re-select the previous value if it's still valid
+            if (categories.includes(currentCat)) {
+                expenseCategorySelect.value = currentCat;
+            }
+        };
+
         const renderApp = () => {
             // 1. Update Partner Names in Tracker/Forms
             const [partnerA, partnerB] = getPartnerNames();
             const whoPaidSelect = document.getElementById('expense-who-paid');
-            // Store current selected value to maintain selection across renders
             const currentPaid = whoPaidSelect.value; 
             whoPaidSelect.innerHTML = `<option value="" disabled selected>Select Partner</option>
                                        <option value="${partnerA}">${partnerA}</option>
@@ -825,45 +968,43 @@
             whoPaidSelect.value = currentPaid || "";
 
             // 2. Update Custom Selects
-            const expenseCategorySelect = document.getElementById('expense-category');
-            const currentCat = expenseCategorySelect.value;
-            const categories = [...appState.accounts.expense, ...appState.accounts.income];
-            expenseCategorySelect.innerHTML = `<option value="" disabled selected>Select Category</option>` +
-                                              categories.map(c => `<option value="${c}">${c}</option>`).join('');
-            expenseCategorySelect.value = currentCat || "";
-
+            // Update Account (Asset/Liability) dropdown
             const expenseAccountSelect = document.getElementById('expense-account');
             const currentAcc = expenseAccountSelect.value;
             const accounts = [...appState.accounts.asset, ...appState.accounts.liability];
             expenseAccountSelect.innerHTML = `<option value="" disabled selected>Select Account</option>` +
                                               accounts.map(a => `<option value="${a}">${a}</option>`).join('');
             expenseAccountSelect.value = currentAcc || "";
-
+            
+            // Update Category dropdown based on current type
+            const currentType = document.getElementById('expense-type').value;
+            updateCategoryDropdown(currentType);
 
             // 3. Render Tracker Section
-            renderTrackerSummary();
+            renderTrackerSummary(); // Note: This is now called by recalculateFullDebtHistory
             renderTransactionsTable();
 
             // 4. Render Settings
             renderSettings();
-            
-            // 5. Render Upcoming List (always, as it's part of calendar page)
-            renderUpcomingList();
 
-            // 6. Render Calendar (if in view)
+            // 5. Render Calendar (if in view)
             if (appState.currentView === 'calendar') {
                 renderCalendar();
             }
 
-            // 7. Update User Info
-            document.getElementById('user-info').textContent = `User ID: ${userId.slice(0, 8)}...`; // Show truncated ID
+            // 6. Update User Info
+            if (userId) {
+                document.getElementById('user-info').textContent = `User ID: ${userId.slice(0, 8)}...`; // Show truncated ID
+            }
 
             // Re-render lucide icons
             lucide.createIcons();
         };
 
         const renderTrackerSummary = () => {
-            const { partnerA, partnerB, currentDebt } = appState.settings;
+            const { partnerA, partnerB } = appState.settings;
+            // Use the live calculated debt
+            const { currentDebt, standingBalanceA, standingBalanceB } = appState.liveState;
             const debtAmount = formatCurrency(currentDebt);
             let debtStatusText = '';
             let subStatusText = '';
@@ -887,17 +1028,22 @@
                       <i data-lucide="check-circle" class="w-5 h-5 mr-2"></i>
                       Reconcile Balance
                    </button>`
-                : '<div class="h-10 mt-4"></div>'; // Placeholder space
+                : '<div class="h-10"></div>'; // Placeholder space
 
             document.getElementById('current-balance-summary').innerHTML = `
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
                         <h4 class="text-lg font-semibold text-gray-700">${debtStatusText}</h4>
                         <p class="text-4xl font-extrabold ${currentDebt === 0 ? 'text-gray-900' : 'peso-color-debt'} mt-1">${debtAmount}</p>
                         <p class="text-sm text-gray-500 mt-1">${subStatusText}</p>
                     </div>
-                    ${reconcileButton}
+                    <!-- Standing Balance Display -->
+                    <div class="text-sm text-gray-700 text-left sm:text-right">
+                        <p><strong>${partnerA} Balance:</strong> ${formatCurrency(standingBalanceA)}</p>
+                        <p><strong>${partnerB} Balance:</strong> ${formatCurrency(standingBalanceB)}</p>
+                    </div>
                 </div>
+                <div class="mt-4">${reconcileButton}</div>
             `;
             // Re-render icons after injection
             lucide.createIcons();
@@ -905,32 +1051,47 @@
             if (currentDebt !== 0) {
                 document.getElementById('reconcile-button').onclick = () => showMessageModal(
                     "Reconcile Debt",
-                    `Are you sure you want to zero out the current debt of <strong>${debtAmount}</strong>? This assumes the payment has been settled.`,
+                    `This will log a "Debt Payment" transaction to zero out the <strong>${debtAmount}</strong> debt. This assumes the payment has been settled. Continue?`,
                     true,
                     async () => {
-                        await saveSettings({ currentDebt: 0 });
-                        showMessageModal("Success", "Debt balance reconciled to zero.");
+                        // Log a balancing transaction
+                        const [partnerA, partnerB] = getPartnerNames();
+                        const data = {
+                            date: new Date(), // Use today's date
+                            amount: Math.abs(currentDebt),
+                            type: 'Expense', // Logged as an expense
+                            category: 'Debt Payment',
+                            particular: 'Debt Reconciliation',
+                            debtType: 'DebtPayment',
+                            account: 'Cash', // Default account
+                            whoPaid: currentDebt > 0 ? partnerB : partnerA, // The person who *owes* is the one "paying"
+                        };
+                        await addTransaction(data);
+                        showMessageModal("Success", "Debt reconciliation transaction logged.");
                     }
                 );
             }
         };
 
         const renderTransactionsTable = () => {
-            const transactions = appState.filteredTransactions.length > 0 ? appState.filteredTransactions : appState.transactions;
+            const transactions = appState.filteredTransactions;
             const tableBody = document.getElementById('transactions-table-body');
             tableBody.innerHTML = ''; // Clear previous rows
 
             if (transactions.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="8" class="text-center py-6 text-gray-500">No transactions logged yet.</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="8" class="text-center py-6 text-gray-500">No transactions match filters.</td></tr>';
                 return;
             }
 
-            transactions.forEach((t, index) => {
+            transactions.forEach((t) => {
                 const isExpense = t.type === 'Expense';
                 const colorClass = isExpense ? 'peso-color-expense' : 'peso-color-income';
-                const debtInfo = t.debtType === 'Shared' && isExpense
-                    ? (t.whoPaid === appState.settings.partnerA ? `B owes A` : `A owes B`)
-                    : 'N/A';
+                let debtInfo = t.debtType;
+                if (t.debtType === 'Shared' && isExpense) {
+                    debtInfo = 'Shared';
+                } else if (!isExpense) {
+                    debtInfo = 'N/A';
+                }
 
                 const row = document.createElement('tr');
                 row.className = `table-row-hover table-row-zebra`;
@@ -943,11 +1104,7 @@
                     <td class="px-4 py-3 text-sm">${t.category}</td>
                     <td class="px-4 py-3 text-sm text-center text-gray-700">${debtInfo}</td>
                     <td class="px-4 py-3 whitespace-nowrap text-center text-sm font-medium">
-                        <button class="text-red-600 hover:text-red-900 delete-btn p-1 rounded-full hover:bg-red-100 transition-colors" data-id="${t.id}"
-                                data-shared="${t.debtType === 'Shared'}"
-                                data-amount="${t.amount}"
-                                data-paid="${t.whoPaid}"
-                                data-type="${t.type}">
+                        <button class="text-red-600 hover:text-red-900 delete-btn p-1 rounded-full hover:bg-red-100 transition-colors" data-id="${t.id}">
                             <i data-lucide="trash-2" class="w-4 h-4 inline"></i>
                         </button>
                     </td>
@@ -962,15 +1119,9 @@
             document.querySelectorAll('.delete-btn').forEach(btn => {
                 btn.onclick = () => showMessageModal(
                     "Confirm Deletion",
-                    "Are you sure you want to delete this transaction? This will also recalculate the debt balance if it was a shared expense.",
+                    "Are you sure you want to delete this transaction? This will recalculate the entire debt balance.",
                     true,
-                    () => deleteTransaction(
-                        btn.dataset.id,
-                        btn.dataset.shared === 'true',
-                        parseFloat(btn.dataset.amount),
-                        btn.dataset.paid,
-                        btn.dataset.type
-                    )
+                    () => deleteTransaction(btn.dataset.id)
                 );
             });
         };
@@ -979,8 +1130,8 @@
             let filtered = [...appState.transactions];
 
             const particularFilter = document.getElementById('filter-particular').value.toLowerCase();
-            const dateStart = document.getElementById('filter-date-start').value;
-            const dateEnd = document.getElementById('filter-date-end').value;
+            const dateStart = document.getElementById('filter-date-start').valueAsDate;
+            const dateEnd = document.getElementById('filter-date-end').valueAsDate;
             const sortBy = document.getElementById('sort-by').value;
 
             // 1. Filter
@@ -992,12 +1143,10 @@
                     if (!t.particular.toLowerCase().includes(particularFilter)) pass = false;
                 }
                 if (dateStart) {
-                    const start = new Date(dateStart);
-                    start.setHours(0, 0, 0, 0); // Start of the day
-                    if (tDate.getTime() < start.getTime()) pass = false;
+                    if (tDate.getTime() < dateStart.getTime()) pass = false;
                 }
                 if (dateEnd) {
-                    const end = new Date(dateEnd);
+                    const end = new Date(dateEnd.getTime());
                     end.setHours(23, 59, 59, 999); // Include the whole end day
                     if (tDate.getTime() > end.getTime()) pass = false;
                 }
@@ -1025,13 +1174,13 @@
         };
 
         const renderSettings = () => {
-            const { partnerA, partnerB, incomeA, incomeB, divisionMethod, customA, customB } = appState.settings;
+            const { partnerA, partnerB, initialStandingBalanceA, initialStandingBalanceB, divisionMethod, customA, customB } = appState.settings;
 
             // Partner & Income
             document.getElementById('partner-a-name').value = partnerA;
             document.getElementById('partner-b-name').value = partnerB;
-            document.getElementById('partner-a-income').value = incomeA;
-            document.getElementById('partner-b-income').value = incomeB;
+            document.getElementById('partner-a-balance').value = initialStandingBalanceA;
+            document.getElementById('partner-b-balance').value = initialStandingBalanceB;
 
             // Division Method
             const divisionRadio = document.querySelector(`input[name="division-method"][value="${divisionMethod}"]`);
@@ -1043,18 +1192,30 @@
             const customFields = document.getElementById('custom-percentage-fields');
             customFields.classList.toggle('hidden', divisionMethod !== 'Custom');
 
-            // Custom Items List
-            const customList = document.getElementById('custom-items-list');
-            customList.innerHTML = '';
+            // Custom Items Accordion
+            const accordionContainer = document.getElementById('custom-items-accordion');
+            accordionContainer.innerHTML = '';
             ['asset', 'liability', 'income', 'expense'].forEach(type => {
                 const title = type.charAt(0).toUpperCase() + type.slice(1) + 's';
                 const items = appState.accounts[type] || [];
-                customList.innerHTML += `<li class="font-bold text-gray-800 mt-4 border-b border-blue-100 pb-1">${title}</li>`;
-                if (items.length === 0) {
-                     customList.innerHTML += `<li class="text-gray-400 text-sm italic py-1">No ${type} items added.</li>`;
-                }
+                
+                const accordionItem = document.createElement('div');
+                accordionItem.className = 'border rounded-lg overflow-hidden';
+                
+                // Header
+                const header = document.createElement('div');
+                header.className = 'accordion-header p-3 flex justify-between items-center';
+                header.innerHTML = `
+                    <span class="font-bold text-gray-800">${title}</span>
+                    <i data-lucide="chevron-down" class="w-5 h-5 transition-transform"></i>
+                `;
+                
+                // Content
+                const content = document.createElement('div');
+                content.className = 'accordion-content px-3 pb-3';
+                let itemsHTML = '<ul class="space-y-3 text-sm">';
                 items.forEach(item => {
-                    customList.innerHTML += `
+                    itemsHTML += `
                         <li class="flex justify-between items-center text-gray-700 py-2 border-b border-gray-100 last:border-b-0">
                             <span class="font-medium">${item}</span>
                             <button class="text-red-500 hover:text-red-700 text-xs delete-custom-btn p-1 rounded-full hover:bg-red-50"
@@ -1064,46 +1225,110 @@
                         </li>
                     `;
                 });
+                itemsHTML += '</ul>';
+                content.innerHTML = itemsHTML;
+
+                accordionItem.appendChild(header);
+                accordionItem.appendChild(content);
+                accordionContainer.appendChild(accordionItem);
+
+                // Accordion click listener
+                header.onclick = () => {
+                    const isOpen = content.classList.contains('open');
+                    // Close all others
+                    document.querySelectorAll('.accordion-content').forEach(el => {
+                        el.classList.remove('open');
+                        el.previousElementSibling.querySelector('i').style.transform = 'rotate(0deg)';
+                    });
+                    // Open/close current
+                    if (!isOpen) {
+                        content.classList.add('open');
+                        header.querySelector('i').style.transform = 'rotate(180deg)';
+                    }
+                };
             });
 
             lucide.createIcons();
 
             // Attach delete listeners for custom items
             document.querySelectorAll('.delete-custom-btn').forEach(btn => {
-                btn.onclick = () => showMessageModal(
-                    "Confirm Deletion",
-                    `Are you sure you want to delete the custom item '<strong>${btn.dataset.name}</strong>'?`,
-                    true,
-                    () => deleteCustomAccount(btn.dataset.type, btn.dataset.name)
-                );
+                btn.onclick = (e) => {
+                    e.stopPropagation(); // Prevent accordion from toggling
+                    showMessageModal(
+                        "Confirm Deletion",
+                        `Are you sure you want to delete the custom item '<strong>${btn.dataset.name}</strong>'?`,
+                        true,
+                        () => deleteCustomAccount(btn.dataset.type, btn.dataset.name)
+                    );
+                };
             });
         };
 
         // --- REPORT GENERATION ---
         const generateReport = () => {
             const transactions = appState.transactions;
-            const startDateStr = document.getElementById('report-date-start').value;
-            const endDateStr = document.getElementById('report-date-end').value;
-            const [partnerA, partnerB] = getPartnerNames();
-            const partnerAShare = getPartnerShare(true);
-
-            const startDate = startDateStr ? new Date(startDateStr) : new Date(0);
-            if (startDateStr) startDate.setHours(0, 0, 0, 0); // Start of day
+            // Use valueAsDate for correct local timezone
+            const startDate = document.getElementById('report-date-start').valueAsDate || new Date(0);
+            const endDate = document.getElementById('report-date-end').valueAsDate || new Date();
             
-            const endDate = endDateStr ? new Date(endDateStr) : new Date();
-            if (endDateStr) endDate.setHours(23, 59, 59, 999); // End of day
+            const [partnerA, partnerB] = getPartnerNames();
+
+            // Adjust endDate to include the whole day
+            if (document.getElementById('report-date-end').valueAsDate) {
+                 endDate.setHours(23, 59, 59, 999);
+            }
 
             let reportTransactions = transactions.filter(t => {
                 const tDate = new Date(t.date.seconds * 1000);
                 return tDate >= startDate && tDate <= endDate;
             });
             
-            reportTransactions.sort((a, b) => b.date.seconds - a.date.seconds);
+            // ** FIX 1: Sort oldest-first for calculation **
+            reportTransactions.sort((a, b) => a.date.seconds - b.date.seconds);
+
+            // ** FIX 2: Calculate the correct starting balances for the period **
+            let balanceAAtStart = appState.settings.initialStandingBalanceA;
+            let balanceBAtStart = appState.settings.initialStandingBalanceB;
+
+            // Iterate all transactions *before* the start date to get starting balances
+            const priorTransactions = transactions
+                .filter(t => (new Date(t.date.seconds * 1000) < startDate))
+                .sort((a, b) => a.date.seconds - b.date.seconds); // Oldest first
+
+            priorTransactions.forEach(t => {
+                const amount = parseFloat(t.amount);
+                if (t.type === 'Income') {
+                    if (t.whoPaid === partnerA) balanceAAtStart += amount;
+                    else if (t.whoPaid === partnerB) balanceBAtStart += amount;
+                } else if (t.type === 'Expense') {
+                    if (t.debtType === 'Personal') {
+                        if (t.whoPaid === partnerA) balanceAAtStart -= amount;
+                        else if (t.whoPaid === partnerB) balanceBAtStart -= amount;
+                    } else if (t.debtType === 'Shared') {
+                        if (t.whoPaid === partnerA) balanceAAtStart -= amount;
+                        else if (t.whoPaid === partnerB) balanceBAtStart -= amount;
+                    } else if (t.debtType === 'DebtPayment') {
+                        if (t.whoPaid === partnerA) {
+                            balanceAAtStart -= amount;
+                            balanceBAtStart += amount;
+                        } else if (t.whoPaid === partnerB) {
+                            balanceBAtStart -= amount;
+                            balanceAAtStart += amount;
+                        }
+                    }
+                }
+            });
+            // ** End of FIX 2 **
 
             // 1. Settlement Summary Calculation
             let totalSharedExpense = 0;
             let totalPaidA = 0;
             let totalPaidB = 0;
+            
+            // Re-calculate balances *just for this period*
+            // ** FIX 3: Start from the correct period balances **
+            let periodBalanceA = balanceAAtStart;
+            let periodBalanceB = balanceBAtStart;
 
             reportTransactions.forEach(t => {
                 const tAmount = parseFloat(t.amount);
@@ -1115,10 +1340,38 @@
                         totalPaidB += tAmount;
                     }
                 }
+                
+                // ** FIX 4: Apply the FULL balance logic inside this loop **
+                if (t.type === 'Income') {
+                    if (t.whoPaid === partnerA) periodBalanceA += tAmount;
+                    else if (t.whoPaid === partnerB) periodBalanceB += tAmount;
+                } else if (t.type === 'Expense' && t.debtType === 'Personal') {
+                    if (t.whoPaid === partnerA) periodBalanceA -= tAmount;
+                    else if (t.whoPaid === partnerB) periodBalanceB -= tAmount;
+                } else if (t.type === 'Expense' && t.debtType === 'Shared') {
+                    // This logic is now correct, as it was missing from the original
+                    if (t.whoPaid === partnerA) {
+                        periodBalanceA -= tAmount;
+                    } else if (t.whoPaid === partnerB) {
+                        periodBalanceB -= tAmount;
+                    }
+                } else if (t.type === 'Expense' && t.debtType === 'DebtPayment') {
+                    if (t.whoPaid === partnerA) {
+                        periodBalanceA -= tAmount;
+                        periodBalanceB += tAmount;
+                    } else if (t.whoPaid === partnerB) {
+                        periodBalanceB -= tAmount;
+                        periodBalanceA += tAmount;
+                    }
+                }
             });
+            
+            // Get share based on *period end* balances for this report
+            // ** FIX 5: Use the final calculated period balances **
+            const { shareA, shareB } = getPartnerShare(appState.settings.divisionMethod, periodBalanceA, periodBalanceB);
 
-            const expectedShareA = totalSharedExpense * partnerAShare;
-            const expectedShareB = totalSharedExpense * (1 - partnerAShare);
+            const expectedShareA = totalSharedExpense * shareA;
+            const expectedShareB = totalSharedExpense * shareB;
 
             // If A paid more than their share, B owes A (positive debt).
             const netDebt = totalPaidA - expectedShareA; 
@@ -1127,17 +1380,17 @@
             let settlementColor = 'text-gray-800';
 
             if (netDebt > 0) {
-                settlementText = `${partnerB} needs to pay ${partnerA} <strong>${formatCurrency(netDebt)}</strong> to balance shared expenses.`;
+                settlementText = `${partnerB} needs to pay ${partnerA} <strong>${formatCurrency(netDebt)}</strong> to balance.`;
                 settlementColor = 'text-red-600';
             } else if (netDebt < 0) {
-                settlementText = `${partnerA} needs to pay ${partnerB} <strong>${formatCurrency(netDebt)}</strong> to balance shared expenses.`;
+                settlementText = `${partnerA} needs to pay ${partnerB} <strong>${formatCurrency(netDebt)}</strong> to balance.`;
                 settlementColor = 'text-red-600';
             } else {
                 settlementText = "Shared expenses are perfectly balanced in this period!";
                 settlementColor = 'text-green-600';
             }
 
-            const divisionRatio = (partnerAShare * 100).toFixed(0) + '/' + ((1 - partnerAShare) * 100).toFixed(0);
+            const divisionRatio = (shareA * 100).toFixed(0) + '/' + (shareB * 100).toFixed(0);
 
             let summaryHTML = `
                 <div class="space-y-4 text-gray-700">
@@ -1229,7 +1482,7 @@
                             <td class="px-4 py-3 font-bold ${colorClass} text-right">${formatCurrency(t.amount)}</td>
                             <td class="px-4 py-3 text-sm text-gray-600">${t.whoPaid}</td>
                             <td class="px-4 py-3 text-sm">${t.category}</td>
-                            <td class="px-4 py-3 text-sm font-semibold text-gray-700">${t.debtType}</td>
+                            <td class="px-4 py-3 text-sm font-semibold text-gray-700">${t.type === 'Income' ? 'N/A' : t.debtType}</td>
                         </tr>
                     `;
                 });
@@ -1240,7 +1493,7 @@
         };
 
 
-        // --- CALENDAR RENDER (IMPROVED) ---
+        // --- CALENDAR RENDER ---
 
         let currentCalendarDate = new Date();
 
@@ -1275,10 +1528,15 @@
             let displayDate = new Date(year, month, 1);
             const today = new Date();
 
+            // Get all transactions for this month for efficiency
+            const monthTransactions = appState.transactions.filter(t => {
+                const tDate = new Date(t.date.seconds * 1000);
+                return tDate.getMonth() === month && tDate.getFullYear() === year;
+            });
+
             while (displayDate.getMonth() === month) {
                 const day = displayDate.getDate();
                 const dayEl = document.createElement('div');
-                // Removed fixed h-24, let content define height
                 dayEl.className = 'p-2 min-h-24 border rounded-xl m-1 relative flex flex-col items-center cursor-pointer transition-all bg-white hover:shadow-md';
                 
                 // Highlight today's date
@@ -1286,137 +1544,82 @@
                     dayEl.classList.add('bg-blue-100', 'border-blue-500', 'border-2');
                 }
 
-                dayEl.innerHTML = `<span class="text-base font-bold text-gray-800">${day}</span>`;
+                dayEl.innerHTML = `<span class="text-xl font-bold text-gray-800">${day}</span>`;
 
-                // --- NEW: Find Logged Transactions for this day ---
-                const loggedTransactions = appState.transactions.filter(t => {
-                    const tDate = new Date(t.date.seconds * 1000);
-                    return tDate.getDate() === day && tDate.getMonth() === month && tDate.getFullYear() === year;
-                });
-
-                // --- Find Upcoming Events for this day (Existing logic) ---
-                const upcomingEvents = appState.upcoming.filter(e => {
+                // Combine Scheduled and Logged events
+                const scheduledEvents = appState.upcoming.filter(e => {
                     const eDate = new Date(e.date.seconds * 1000);
-                    // Check for exact date match
                     const isExactMatch = eDate.getDate() === day && eDate.getMonth() === month && eDate.getFullYear() === year;
-                    // Check for recurring match: if recurring is true, the recurring day matches, and the current date is after the initial scheduled date
-                    const isRecurring = e.recurring && parseInt(e.recurringDay) === day && (displayDate.getTime() >= eDate.getTime());
-
+                    const isRecurring = e.recurring && parseInt(e.recurringDay) === day && (eDate.getTime() <= displayDate.getTime());
                     return isExactMatch || isRecurring;
-                });
+                }).map(e => ({...e, eventType: 'scheduled'}));
 
-                if (loggedTransactions.length > 0 || upcomingEvents.length > 0) {
-                    const eventContainer = document.createElement('div');
-                    eventContainer.className = 'mt-1 space-y-1 w-full overflow-hidden flex flex-col items-start px-1';
+                const loggedEvents = monthTransactions.filter(t => {
+                    const tDate = new Date(t.date.seconds * 1000);
+                    return tDate.getDate() === day;
+                }).map(t => ({...t, eventType: 'logged'}));
+                
+                const eventsForDay = [...scheduledEvents, ...loggedEvents];
+
+                if (eventsForDay.length > 0) {
+                    const iconContainer = document.createElement('div');
+                    iconContainer.className = 'mt-1 space-y-0.5 w-full overflow-hidden flex flex-col items-start px-1';
                     
-                    let pillCount = 0;
-                    const maxPills = 3;
-
-                    // 1. Display Upcoming Events (Amber)
-                    upcomingEvents.forEach(event => {
-                        if (pillCount >= maxPills) return;
-                        eventContainer.innerHTML += `
-                            <div class="calendar-pill bg-amber-100 text-amber-800" title="${event.particular} - ${formatCurrency(event.amount)}">
-                                <i data-lucide="calendar-clock" class="w-3 h-3 inline mr-1.5 flex-shrink-0"></i> ${event.particular}
-                            </div>
-                        `;
-                        pillCount++;
+                    eventsForDay.slice(0, 3).forEach(event => {
+                        let eventHTML = '';
+                        if (event.eventType === 'scheduled') {
+                            eventHTML = `
+                                <p class="text-xs font-semibold ${event.completed ? 'text-gray-400 line-through' : 'text-red-600'} truncate w-full" title="${event.particular} - ${formatCurrency(event.amount)}">
+                                    <i data-lucide="calendar-x" class="w-3 h-3 inline mr-1"></i> ${formatCurrency(event.amount)}
+                                </p>`;
+                        } else { // Logged
+                            eventHTML = `
+                                <p class="text-xs font-semibold ${event.type === 'Income' ? 'peso-color-income' : 'peso-color-expense'} truncate w-full" title="${event.particular} - ${formatCurrency(event.amount)}">
+                                    <i data-lucide="${event.type === 'Income' ? 'trending-up' : 'trending-down'}" class="w-3 h-3 inline mr-1"></i> ${formatCurrency(event.amount)}
+                                </p>`;
+                        }
+                        iconContainer.innerHTML += eventHTML;
                     });
 
-                    // 2. Display Logged Transactions (Green/Red)
-                    loggedTransactions.forEach(t => {
-                        if (pillCount >= maxPills) return;
-                        const isExpense = t.type === 'Expense';
-                        const colorClass = isExpense ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800';
-                        const icon = isExpense ? 'arrow-down-right' : 'arrow-up-right';
-                        
-                        eventContainer.innerHTML += `
-                            <div class="calendar-pill ${colorClass}" title="${t.particular} - ${formatCurrency(t.amount)}">
-                                <i data-lucide="${icon}" class="w-3 h-3 inline mr-1.5 flex-shrink-0"></i> ${t.particular}
-                            </div>
-                        `;
-                        pillCount++;
-                    });
-
-
-                    if (upcomingEvents.length + loggedTransactions.length > maxPills) {
-                         eventContainer.innerHTML += `<p class="text-xs text-gray-500 px-1.5 mt-1">+ ${upcomingEvents.length + loggedTransactions.length - maxPills} more</p>`;
+                    if (eventsForDay.length > 3) {
+                         iconContainer.innerHTML += `<p class="text-xs text-gray-400">... ${eventsForDay.length - 3} more</p>`;
                     }
-                    
                     if (!dayEl.classList.contains('bg-blue-100')) {
-                        dayEl.classList.add('bg-gray-50'); // Highlight days with events
+                        dayEl.classList.add('bg-red-50'); // Highlight days with events
                     }
-                    // --- UPDATED: Pass both arrays to the modal ---
-                    dayEl.onclick = () => showDayEvents(day, month, year, upcomingEvents, loggedTransactions);
-                    dayEl.appendChild(eventContainer);
+                    dayEl.onclick = () => showDayEvents(day, month, year, eventsForDay);
+                    dayEl.appendChild(iconContainer);
                 }
 
                 grid.appendChild(dayEl);
                 displayDate.setDate(displayDate.getDate() + 1);
             }
-
-            // Fill trailing empty cells (no change)
-            let lastDayIndex = (displayDate.getDay() - 1 + 7) % 7;
-            if (lastDayIndex !== 6) { 
-                let nextEmptyCell = lastDayIndex + 1;
-                for (let i = nextEmptyCell; i < 7; i++) {
-                    const emptyEl = document.createElement('div');
-                    emptyEl.className = 'bg-gray-50 border rounded-xl m-1';
-                    grid.appendChild(emptyEl);
-                }
-            }
-
-            // renderUpcomingList(); // Already called in renderApp
+            renderUpcomingList();
             lucide.createIcons();
         };
 
-        // --- UPDATED: Show both upcoming and logged transactions in modal ---
-        const showDayEvents = (day, month, year, upcomingEvents, loggedTransactions) => {
-            const dateStr = new Date(year, month, day).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-            let message = '';
-
-            // Section 1: Logged Transactions
-            if (loggedTransactions.length > 0) {
-                message += `<h5 class="font-bold text-lg mb-2 text-gray-800">Logged Transactions</h5><ul class="space-y-2 mb-4">`;
-                loggedTransactions.forEach(t => {
-                    const isExpense = t.type === 'Expense';
-                    const colorClass = isExpense ? 'peso-color-expense' : 'peso-color-income';
-                    const sign = isExpense ? '-' : '+';
-                    message += `
-                        <li class="border-b pb-2 last:border-b-0">
-                            <div class="flex justify-between">
-                                <span class="font-semibold text-gray-700">${t.particular}</span>
-                                <span class="${colorClass} font-bold">${sign}${formatCurrency(t.amount)}</span>
-                            </div>
-                            <span class="text-sm text-gray-500">${t.category}</span>
-                        </li>`;
-                });
-                message += `</ul>`;
-            }
-
-            // Section 2: Scheduled Items
-            if (upcomingEvents.length > 0) {
-                message += `<h5 class="font-bold text-lg mb-2 text-gray-800">Scheduled Items</h5><ul class="space-y-2">`;
-                upcomingEvents.forEach(e => {
-                    const recurringText = e.recurring ? ` (<span class="text-blue-600 font-medium">Monthly on Day ${e.recurringDay}</span>)` : '';
-                    message += `
-                        <li class="border-b pb-2 last:border-b-0">
-                            <div class="flex justify-between">
-                                <span class="font-semibold text-gray-700">${e.particular}</span>
-                                <span class="peso-color-debt font-bold">${formatCurrency(e.amount)}</span>
-                            </div>
-                            ${recurringText}
-                        </li>`;
-                });
-                message += `</ul>`;
-            }
+        const showDayEvents = (day, month, year, events) => {
+            const dateStr = new Date(year, month, day).toLocaleDateString();
+            let message = `<h5 class="font-bold text-lg mb-3">Events for ${dateStr}:</h5><ul class="space-y-3">`;
             
-            // Fallback if somehow clicked with no events
-            if (message === '') {
-                message = '<p class="text-gray-500">No financial events for this day.</p>';
-            }
-
-            showMessageModal(`Financial Events on ${dateStr}`, message);
+            events.forEach(e => {
+                if (e.eventType === 'scheduled') {
+                    const recurringText = e.recurring ? ` (<span class="text-blue-600">Monthly on Day ${e.recurringDay}</span>)` : '';
+                    message += `
+                        <li class="border-b pb-2 ${e.completed ? 'text-gray-400 line-through' : ''}">
+                            <span class="font-semibold text-gray-800">${e.particular} (Bill):</span> 
+                            <span class="peso-color-expense font-bold">${formatCurrency(e.amount)}</span> ${recurringText}
+                        </li>`;
+                } else { // Logged
+                     message += `
+                        <li class="border-b pb-2">
+                            <span class="font-semibold text-gray-800">${e.particular} (Logged):</span> 
+                            <span class="${e.type === 'Income' ? 'peso-color-income' : 'peso-color-expense'} font-bold">${formatCurrency(e.amount)}</span>
+                        </li>`;
+                }
+            });
+            message += `</ul>`;
+            showMessageModal(`Events on ${dateStr}`, message);
         };
 
         const renderUpcomingList = () => {
@@ -1430,34 +1633,39 @@
             }
 
             sortedUpcoming.forEach(item => {
-                const date = new Date(item.date.seconds * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                const date = new Date(item.date.seconds * 1000).toLocaleDateString();
                 const recurringText = item.recurring ? ` (Recur Day ${item.recurringDay})` : ` (${date})`;
+                const itemClasses = item.completed ? 'text-gray-400 line-through' : 'text-gray-800';
 
-                list.innerHTML += `
-                    <li class="flex justify-between items-center bg-gray-50 p-3 rounded-xl shadow-sm hover:bg-white transition-colors">
+                const li = document.createElement('li');
+                li.className = `flex justify-between items-center bg-gray-50 p-3 rounded-xl shadow-sm hover:bg-white transition-colors`;
+                li.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" class="upcoming-complete-check h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500" data-id="${item.id}" ${item.completed ? 'checked' : ''}>
                         <div>
-                            <p class="font-bold text-gray-800">${item.particular}</p>
-                            <p class="text-gray-600 text-sm font-medium">${formatCurrency(item.amount)} <span class="text-xs text-blue-500 font-semibold">${recurringText}</span></p>
+                            <p class="font-bold ${itemClasses}">${item.particular}</p>
+                            <p class="text-gray-600 text-sm font-medium ${item.completed ? 'line-through' : ''}">${formatCurrency(item.amount)} <span class="text-xs text-blue-500">${recurringText}</span></p>
                         </div>
-                        <button class="text-red-500 hover:text-red-700 text-xs delete-upcoming-btn p-1 rounded-full hover:bg-red-100 transition-colors"
-                                data-id="${item.id}">
-                            <i data-lucide="trash-2" class="w-4 h-4 inline"></i>
-                        </button>
-                    </li>
+                    </div>
+                    <button class="text-red-500 hover:text-red-700 text-xs delete-upcoming-btn p-1 rounded-full hover:bg-red-100 transition-colors"
+                            data-id="${item.id}">
+                        <i data-lucide="trash-2" class="w-4 h-4 inline"></i>
+                    </button>
                 `;
-            });
+                list.appendChild(li);
 
-            lucide.createIcons(); // Ensure icons in list are rendered
-
-            // Attach delete listeners
-            document.querySelectorAll('.delete-upcoming-btn').forEach(btn => {
-                btn.onclick = () => showMessageModal(
+                // Add listeners for new items
+                li.querySelector('.upcoming-complete-check').onchange = (e) => {
+                    toggleUpcomingCompletion(e.target.dataset.id, item.completed);
+                };
+                li.querySelector('.delete-upcoming-btn').onclick = () => showMessageModal(
                     "Confirm Deletion",
                     "Are you sure you want to delete this scheduled expense?",
                     true,
-                    () => deleteUpcomingExpense(btn.dataset.id)
+                    () => deleteUpcomingExpense(item.id)
                 );
             });
+            lucide.createIcons();
         };
 
         // --- FIREBASE LISTENERS ---
@@ -1470,6 +1678,8 @@
                 if (docSnap.exists()) {
                     appState.settings = { ...appState.settings, ...docSnap.data() };
                 }
+                // When settings change, always recalculate
+                recalculateFullDebtHistory();
                 renderApp();
             }, (error) => console.error("Settings Listener Error: ", error));
 
@@ -1485,48 +1695,42 @@
             const qTransactions = query(getTransactionsColRef(), where("timestamp", ">", new Timestamp(0, 0)));
             onSnapshot(qTransactions, (snapshot) => {
                 appState.transactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                // Default sort: Newest first
-                appState.transactions.sort((a, b) => b.date.seconds - a.date.seconds);
-                filterAndSortTransactions(); // Apply filters/sort on new data
-                renderApp(); // Full re-render
+                // When transactions change, always recalculate and re-filter
+                recalculateFullDebtHistory();
+                filterAndSortTransactions(); // This will also call renderTransactionsTable
+                if(appState.currentView === 'calendar') renderCalendar();
             }, (error) => console.error("Transactions Listener Error: ", error));
 
             // 4. Upcoming Listener
             const qUpcoming = query(getUpcomingColRef(), where("timestamp", ">", new Timestamp(0, 0)));
             onSnapshot(qUpcoming, (snapshot) => {
                 appState.upcoming = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderApp();
+                // When upcoming items change, re-render calendar/lists
+                if(appState.currentView === 'calendar') {
+                    renderCalendar(); // This calls renderUpcomingList
+                }
             }, (error) => console.error("Upcoming Listener Error: ", error));
         };
 
         // --- AUTH & INITIALIZATION ---
-
-        const handleAuth = async (isSignup) => {
-            const email = document.getElementById('email-input').value;
-            const password = document.getElementById('password-input').value;
-            const msgEl = document.getElementById('auth-message');
-            msgEl.textContent = '';
-            if (!email || !password) {
-                msgEl.textContent = "Please enter both email and password.";
-                return;
-            }
-
+        
+        const initializeAuthAndApp = async () => {
             updateLoading(true);
             try {
-                if (isSignup) {
-                    await createUserWithEmailAndPassword(auth, email, password);
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
-                    await signInWithEmailAndPassword(auth, email, password);
+                    await signInAnonymously(auth);
                 }
-            } catch (error) {
-                const errorMessage = error.message.replace('Firebase: Error (auth/', '').replace(').', '').replace(/-/g, ' ').toUpperCase();
-                msgEl.textContent = `Authentication Failed: ${errorMessage}`;
-            } finally {
-                updateLoading(false);
+            } catch (e) {
+                console.error("Initial Auth attempt failed: ", e);
+                // Fallback to anonymous, onAuthStateChanged will handle the rest
+                if (auth.currentUser === null) {
+                    try { await signInAnonymously(auth); } catch (e2) { console.error("Anonymous fallback failed: ", e2); }
+                }
             }
         };
 
-        // REMAINS AS THE PRIMARY AUTH STATE OBSERVER
         onAuthStateChanged(auth, (user) => {
             updateLoading(true);
             if (user) {
@@ -1534,37 +1738,17 @@
                 renderAuthScreen(false); // Hide login, show app
                 setupDataListeners();
             } else {
-                // If user logs out or initial auth fails, show login screen
                 userId = null;
                 renderAuthScreen(true);
             }
             updateLoading(false);
         });
-        
-        // NEW FUNCTION: Handles the mandatory initial sign-in in the Canvas environment
-        const initializeAuthAndApp = async () => {
-            updateLoading(true);
-            try {
-                // Use the provided initial token if available, otherwise sign in anonymously
-                if (typeof __initial_auth_token !== 'undefined') {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-                // onAuthStateChanged will handle the subsequent UI and data setup
-            } catch (e) {
-                // If initial sign-in fails (e.g., expired/mismatch token), 
-                // onAuthStateChanged will receive null user, prompting manual login.
-                console.error("Initial Auth attempt failed: ", e);
-                updateLoading(false);
-            }
-        };
 
 
         const setupEventListeners = () => {
-            // Auth Buttons
-            document.getElementById('login-button').onclick = () => handleAuth(false);
-            document.getElementById('signup-button').onclick = () => handleAuth(true);
+            // Auth Buttons (if they were part of the app)
+            // document.getElementById('login-button').onclick = () => handleAuth(false);
+            // document.getElementById('signup-button').onclick = () => handleAuth(true);
             document.getElementById('logout-button').onclick = () => signOut(auth);
 
             // Navigation
@@ -1579,11 +1763,9 @@
                     document.getElementById(`${sectionId}-section`).classList.remove('hidden');
 
                     document.querySelectorAll('.nav-button').forEach(nav => {
-                        nav.classList.remove('ios-tab-active', 'text-gray-900');
-                        nav.classList.add('text-gray-600', 'hover:bg-gray-100');
+                        nav.classList.remove('ios-tab-active');
                     });
-                    button.classList.add('ios-tab-active', 'text-gray-900');
-                    button.classList.remove('text-gray-600', 'hover:bg-gray-100');
+                    button.classList.add('ios-tab-active');
 
                     if (sectionId === 'reports') generateReport();
                     if (sectionId === 'calendar') renderCalendar();
@@ -1594,21 +1776,8 @@
             document.getElementById('expense-form').onsubmit = async (e) => {
                 e.preventDefault();
                 const form = e.target;
-                
-                // Get date from input
-                const dateInput = form['expense-date'].value;
-                if (!dateInput) {
-                     showMessageModal("Input Error", "Please select a valid date for the transaction.");
-                    return;
-                }
-                
-                // Create a Date object. Assumes local timezone, which is correct.
-                const localDate = new Date(dateInput); 
-                // Adjust for timezone offset to get correct UTC midnight for date
-                localDate.setMinutes(localDate.getMinutes() + localDate.getTimezoneOffset());
-                
                 const data = {
-                    date: localDate, // Use the adjusted Date object
+                    date: form['expense-date'].valueAsDate, // Use valueAsDate
                     amount: parseFloat(form['expense-amount'].value),
                     type: form['expense-type'].value,
                     category: form['expense-category'].value,
@@ -1618,12 +1787,28 @@
                     account: form['expense-account'].value,
                 };
                 
-                if (data.type === 'Income' && (data.debtType === 'Shared' || data.debtType === 'Personal')) {
-                    showMessageModal("Input Error", "Income should not be logged as a Shared or Personal *Expense*. Please use 'Debt Payment' for income transactions.");
-                    return;
+                if (data.type === 'Income') {
+                    // For income, debt-type is irrelevant
+                    data.debtType = 'N/A';
                 }
 
                 await addTransaction(data);
+            };
+
+            // Tracker Form Dynamic Fields
+            document.getElementById('expense-type').onchange = (e) => {
+                const type = e.target.value;
+                const debtWrapper = document.getElementById('debt-type-wrapper');
+                
+                // Show/hide Debt Handling
+                if (type === 'Income') {
+                    debtWrapper.classList.add('hidden');
+                } else {
+                    debtWrapper.classList.remove('hidden');
+                }
+                
+                // Update category dropdown
+                updateCategoryDropdown(type);
             };
 
             // Transaction Filter/Sort
@@ -1649,8 +1834,8 @@
                 const newSettings = {
                     partnerA: form['partner-a-name'].value,
                     partnerB: form['partner-b-name'].value,
-                    incomeA: parseFloat(form['partner-a-income'].value) || 0,
-                    incomeB: parseFloat(form['partner-b-income'].value) || 0,
+                    initialStandingBalanceA: parseFloat(form['partner-a-balance'].value) || 0,
+                    initialStandingBalanceB: parseFloat(form['partner-b-balance'].value) || 0,
                     divisionMethod: method,
                     customA: customA || 0,
                     customB: customB || 0,
@@ -1704,40 +1889,35 @@
             document.getElementById('upcoming-form').onsubmit = async (e) => {
                 e.preventDefault();
                 const form = e.target;
-                
-                const dateInput = form['upcoming-date'].value;
-                if (!dateInput) {
-                     showMessageModal("Input Error", "Please select a valid date for the scheduled item.");
-                    return;
-                }
-                
-                // Adjust for timezone offset
-                const localDate = new Date(dateInput); 
-                localDate.setMinutes(localDate.getMinutes() + localDate.getTimezoneOffset());
-                
                 const isRecurring = form['upcoming-recurring'].checked;
                 const data = {
                     particular: form['upcoming-particular'].value,
                     amount: parseFloat(form['upcoming-amount'].value),
-                    date: localDate, // Use adjusted Date object
+                    date: form['upcoming-date'].valueAsDate, // Use valueAsDate
                     recurring: isRecurring,
                     recurringDay: isRecurring ? parseInt(form['recurring-day'].value) : null
                 };
                 await addUpcomingExpense(data);
             };
-            
-            // Set default date for expense form
-            document.getElementById('expense-date').valueAsDate = new Date();
         };
 
         // --- INITIALIZATION ---
 
         // Run setup functions
         document.addEventListener('DOMContentLoaded', () => {
+            // Set initial date for expense form
+            document.getElementById('expense-date').valueAsDate = new Date();
+            // Set initial date for upcoming form
+            document.getElementById('upcoming-date').valueAsDate = new Date();
+
             setupEventListeners();
             lucide.createIcons();
             // Start the mandatory initial authentication flow
             initializeAuthAndApp(); 
+            
+            // Manually trigger initial form/filter setup
+            updateCategoryDropdown('Expense');
+            filterAndSortTransactions();
         });
 
     </script>
