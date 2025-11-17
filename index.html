@@ -102,20 +102,106 @@
             width: 280px; /* Slightly wider sidebar */
             min-width: 280px;
         }
+        
+        /* Calendar pill styles */
+        .calendar-pill {
+            display: flex;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: 9999px;
+            padding: 2px 8px;
+            width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Accordion Styles */
+        .accordion-button {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 1rem 1.5rem;
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1f2937;
+            background-color: #f9fafb;
+            border: none;
+            border-top: 1px solid #e5e7eb;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .accordion-button:hover {
+            background-color: #f3f4f6;
+        }
+        .accordion-button.open {
+            background-color: #f3f4f6;
+        }
+        .accordion-icon {
+            transition: transform 0.3s ease;
+        }
+        .accordion-button.open .accordion-icon {
+            transform: rotate(180deg);
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            background-color: white;
+            padding: 0 1.5rem;
+        }
+        .accordion-content.open {
+            max-height: 500px; /* Adjust as needed */
+            padding: 1.5rem;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        /* Mobile Navigation Bar */
+        #mobile-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background-color: white;
+            border-top: 1px solid #D1D1D6;
+            z-index: 50;
+            display: none; /* Hidden by default, shown on max-width 1024px */
+        }
+        .mobile-nav-button.ios-tab-active {
+            color: var(--ios-blue); /* Active blue text/icon */
+            background-color: transparent;
+        }
+        .mobile-nav-button {
+            padding: 4px;
+            border-radius: 8px;
+            transition: color 0.2s;
+        }
+
 
         /* Responsive adjustments for mobile view */
         @media (max-width: 1024px) {
             .sidebar {
-                width: 100%;
-                height: auto;
-                position: static;
-                border-bottom: 1px solid #D1D1D6;
+                display: none !important; /* Force hide the desktop sidebar on mobile */
+            }
+            #mobile-nav {
+                display: flex; /* Show the mobile nav bar */
             }
             #main-app {
                 flex-direction: column;
+                padding-bottom: 60px; /* Space for fixed mobile nav */
             }
             .app-section {
                 padding: 16px;
+            }
+            /* Make cards full width on mobile */
+            .ios-card {
+                padding: 16px;
+            }
+            h2.text-4xl {
+                font-size: 2rem; /* 32px */
             }
         }
     </style>
@@ -123,12 +209,12 @@
 <body>
     <div id="app" class="min-h-screen">
         <!-- Loading Overlay -->
-        <div id="loading-overlay" class="loading-overlay hidden">
+        <div id="loading-overlay" class="fixed inset-0 bg-white bg-opacity-80 backdrop-blur-sm z-[9999] flex flex-col justify-center items-center">
             <svg class="animate-spin -ml-1 mr-3 h-10 w-10 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <p class="text-xl text-gray-700">Loading data...</p>
+            <p class="text-xl text-gray-700 mt-4">Loading data...</p>
         </div>
 
         <!-- Login Screen -->
@@ -146,11 +232,12 @@
 
         <!-- Main Application Screen -->
         <div id="main-app" class="hidden flex lg:flex-row flex-col">
-            <!-- Sidebar Navigation -->
-            <div class="sidebar bg-white border-r border-gray-200 p-6 lg:sticky top-0 h-auto lg:h-screen overflow-y-auto">
+            <!-- Sidebar Navigation (Desktop) -->
+            <div class="sidebar bg-white border-r border-gray-200 p-6 lg:sticky top-0 h-auto lg:h-screen overflow-y-auto hidden lg:block">
                 <h1 class="text-3xl font-extrabold mb-10 text-center text-gray-900">CoupleTrack</h1>
 
                 <nav class="space-y-2">
+                    <!-- Note: These buttons use the same data-section as the mobile nav -->
                     <button data-section="tracker" class="nav-button w-full flex items-center p-3 rounded-xl transition-colors text-gray-600 ios-tab-active">
                         <i data-lucide="wallet" class="w-5 h-5 mr-3"></i>
                         <span class="text-left flex-1">Tracker</span>
@@ -170,7 +257,7 @@
                 </nav>
 
                 <div class="mt-12 pt-6 border-t border-gray-200">
-                    <div id="user-info" class="text-sm text-gray-500 mb-4 truncate"></div>
+                    <div id="user-info" class="text-sm text-gray-500 mb-4 truncate">User not signed in</div>
                     <button id="logout-button" class="ios-button w-full bg-red-500 hover:bg-red-600 text-sm flex items-center justify-center">
                         <i data-lucide="log-out" class="w-4 h-4 inline mr-2"></i>
                         Sign Out
@@ -194,21 +281,24 @@
                         <h3 class="text-2xl font-bold mb-6 border-b pb-3 text-gray-800">Log New Transaction</h3>
                         <form id="expense-form" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                             
-                            <div class="lg:col-span-2">
+                            <!-- Row 1 -->
+                            <div class="lg:col-span-4">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Particulars / Description</label>
                                 <input type="text" id="expense-particular" placeholder="E.g., Dinner at Cafe Lusso" class="ios-input w-full" required>
                             </div>
                             
-                            <div>
+                            <!-- Row 2 -->
+                            <div class="lg:col-span-2">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Amount (₱)</label>
                                 <input type="number" id="expense-amount" placeholder="1,500.00" class="ios-input w-full" required min="1">
                             </div>
 
-                            <div>
+                            <div class="lg:col-span-2">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
                                 <input type="date" id="expense-date" class="ios-input w-full" required>
                             </div>
                             
+                            <!-- Row 3 -->
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
                                 <select id="expense-type" class="ios-select w-full" required>
@@ -219,27 +309,28 @@
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                                <select id="expense-category" class="ios-select w-full" required>
-                                    <option value="" disabled selected>Select Category</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Who Paid / Received</label>
+                                <label id="who-paid-field-label" class="block text-sm font-medium text-gray-700 mb-1">Who Paid / Received</label>
                                 <select id="expense-who-paid" class="ios-select w-full" required>
-                                    <option value="" disabled selected>Select Partner</option>
+                                    <!-- Options dynamically loaded by renderApp -->
                                 </select>
                             </div>
 
-                            <div>
+                            <div class="lg:col-span-2">
+                                <label id="category-field-label" class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                                <select id="expense-category" class="ios-select w-full" required>
+                                    <!-- Options are now dynamically loaded -->
+                                </select>
+                            </div>
+
+                            <!-- Row 4 -->
+                            <div class="lg:col-span-2">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Account</label>
                                 <select id="expense-account" class="ios-select w-full" required>
                                     <option value="" disabled selected>Select Account</option>
                                 </select>
                             </div>
 
-                            <div>
+                            <div id="debt-field-wrapper" class="lg:col-span-2">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Debt Handling</label>
                                 <select id="expense-debt-type" class="ios-select w-full" required>
                                     <option value="Shared">Shared Expense (Split)</option>
@@ -344,7 +435,7 @@
 
                 <!-- Calendar Section -->
                 <section id="calendar-section" class="app-section hidden">
-                    <h2 class="text-4xl font-extrabold mb-8 text-gray-900">Upcoming Expenses & Calendar</h2>
+                    <h2 class="text-4xl font-extrabold mb-8 text-gray-900">Financial Calendar</h2>
 
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div class="ios-card lg:col-span-2 p-0">
@@ -384,8 +475,8 @@
                             </form>
 
                             <div class="mt-8 pt-6 border-t">
-                                <h4 class="text-xl font-bold mb-3 text-gray-800">Scheduled Items</h4>
-                                <ul id="upcoming-list" class="space-y-3">
+                                <h4 class="text-xl font-bold mb-3 text-gray-800">Scheduled Items List</h4>
+                                <ul id="upcoming-list" class="space-y-3 max-h-60 overflow-y-auto">
                                     <!-- Upcoming items list injected here -->
                                 </ul>
                             </div>
@@ -397,10 +488,10 @@
                 <section id="settings-section" class="app-section hidden">
                     <h2 class="text-4xl font-extrabold mb-8 text-gray-900">Settings & Configuration</h2>
 
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-1 gap-6">
 
                         <!-- Partner Details & Division -->
-                        <div class="ios-card lg:col-span-2">
+                        <div class="ios-card lg:col-span-1">
                             <h3 class="text-2xl font-bold mb-4 border-b pb-3 text-gray-800">Partners & Expense Division</h3>
                             <form id="partner-settings-form" class="space-y-6">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -409,8 +500,8 @@
                                         <input type="text" id="partner-a-name" placeholder="Partner A Name" class="ios-input w-full" required>
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Partner A Monthly Income (₱)</label>
-                                        <input type="number" id="partner-a-income" placeholder="0" class="ios-input w-full" required min="0">
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Partner A Starting Balance (₱)</label>
+                                        <input type="number" id="partner-a-balance" placeholder="0" class="ios-input w-full" required>
                                     </div>
 
                                     <div>
@@ -418,8 +509,8 @@
                                         <input type="text" id="partner-b-name" placeholder="Partner B Name" class="ios-input w-full" required>
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Partner B Monthly Income (₱)</label>
-                                        <input type="number" id="partner-b-income" placeholder="0" class="ios-input w-full" required min="0">
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Partner B Starting Balance (₱)</label>
+                                        <input type="number" id="partner-b-balance" placeholder="0" class="ios-input w-full" required>
                                     </div>
                                 </div>
 
@@ -432,7 +523,7 @@
                                         </label>
                                         <label class="flex items-center">
                                             <input type="radio" name="division-method" value="Proportional" class="h-5 w-5 text-blue-600">
-                                            <span class="ml-3 text-base font-medium text-gray-700">Proportional (Based on Income)</span>
+                                            <span class="ml-3 text-base font-medium text-gray-700">Proportional (Based on Standing Balance)</span>
                                         </label>
                                         <label class="flex items-center">
                                             <input type="radio" name="division-method" value="Custom" class="h-5 w-5 text-blue-600">
@@ -452,6 +543,24 @@
                                         <p id="custom-percent-error" class="text-red-500 text-sm col-span-2 hidden mt-2">Percentages must sum to 100.</p>
                                     </div>
                                 </fieldset>
+                                
+                                <fieldset class="mt-4 p-5 border border-gray-200 rounded-xl">
+                                    <legend class="text-lg font-bold text-gray-900 px-2">Standing Balances</legend>
+                                    <div class="mt-4 space-y-3 text-lg">
+                                        <div class="flex justify-between items-center">
+                                            <span class="font-medium text-gray-700" id="setting-partner-a-name">Partner A:</span>
+                                            <span class="font-bold text-gray-900" id="setting-balance-a">₱ 0.00</span>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <span class="font-medium text-gray-700" id="setting-partner-b-name">Partner B:</span>
+                                            <span class="font-bold text-gray-900" id="setting-balance-b">₱ 0.00</span>
+                                        </div>
+                                    </div>
+                                    <button type="button" id="reconcile-balances-button" class="ios-button w-full mt-6 bg-green-500 hover:bg-green-600 flex items-center justify-center">
+                                        <i data-lucide="check-circle" class="w-5 h-5 mr-2"></i>
+                                        Reconcile Standing Balances
+                                    </button>
+                                </fieldset>
 
                                 <button type="submit" class="ios-button w-full flex items-center justify-center">
                                     <i data-lucide="save" class="w-5 h-5 mr-2"></i>
@@ -461,14 +570,15 @@
                         </div>
 
                         <!-- Custom Accounts & Types -->
-                        <div class="ios-card">
-                            <h3 class="text-2xl font-bold mb-4 border-b pb-3 text-gray-800">Manage Custom Categories</h3>
-                            <form id="custom-type-form" class="space-y-4">
+                        <div class="ios-card lg:col-span-1 p-0 overflow-hidden">
+                            <h3 class="text-2xl font-bold mb-4 p-6 border-b text-gray-800">Manage Custom Categories</h3>
+                            
+                            <form id="custom-type-form" class="space-y-4 p-6">
                                 <select id="custom-type-select" class="ios-select w-full">
                                     <option value="asset">Asset Account</option>
                                     <option value="liability">Liability Account</option>
-                                    <option value="income">Income Type</option>
-                                    <option value="expense">Expense Type</option>
+                                    <option value="income">Income Category</option>
+                                    <option value="expense">Expense Category</option>
                                 </select>
                                 <input type="text" id="custom-type-name" placeholder="New Item Name (e.g., Groceries)" class="ios-input w-full" required>
                                 <button type="submit" class="ios-button w-full bg-green-500 hover:bg-green-600 flex items-center justify-center">
@@ -477,17 +587,76 @@
                                 </button>
                             </form>
 
-                            <div class="mt-6 pt-6 border-t">
-                                <h4 class="text-xl font-bold mb-3 text-gray-800">Current Custom Items</h4>
-                                <ul id="custom-items-list" class="space-y-3 text-sm">
-                                    <!-- Custom items injected here -->
-                                </ul>
+                            <div class="mt-6 border-t">
+                                <h4 class="text-xl font-bold p-6 text-gray-800">Current Custom Items</h4>
+                                
+                                <!-- Accordion Structure -->
+                                <div id="custom-items-accordion">
+                                    
+                                    <!-- Asset Accounts -->
+                                    <button class="accordion-button" data-type="asset">
+                                        <span>Asset Accounts</span>
+                                        <i data-lucide="chevron-down" class="accordion-icon w-5 h-5"></i>
+                                    </button>
+                                    <div class="accordion-content" id="custom-list-asset">
+                                        <ul class="space-y-3 text-sm"></ul>
+                                    </div>
+                                    
+                                    <!-- Liability Accounts -->
+                                    <button class="accordion-button" data-type="liability">
+                                        <span>Liability Accounts</span>
+                                        <i data-lucide="chevron-down" class="accordion-icon w-5 h-5"></i>
+                                    </button>
+                                    <div class="accordion-content" id="custom-list-liability">
+                                        <ul class="space-y-3 text-sm"></ul>
+                                    </div>
+                                    
+                                    <!-- Income Categories -->
+                                    <button class="accordion-button" data-type="income">
+                                        <span>Income Categories</span>
+                                        <i data-lucide="chevron-down" class="accordion-icon w-5 h-5"></i>
+                                    </button>
+                                    <div class="accordion-content" id="custom-list-income">
+                                        <ul class="space-y-3 text-sm"></ul>
+                                    </div>
+
+                                    <!-- Expense Categories -->
+                                    <button class="accordion-button open" data-type="expense"> <!-- Open by default -->
+                                        <span>Expense Categories</span>
+                                        <i data-lucide="chevron-down" class="accordion-icon w-5 h-5"></i>
+                                    </button>
+                                    <div class="accordion-content open" id="custom-list-expense"> <!-- Open by default -->
+                                        <ul class="space-y-3 text-sm"></ul>
+                                    </div>
+                                    
+                                </div>
                             </div>
                         </div>
+                        
                     </div>
                 </section>
             </main>
         </div>
+    </div>
+
+    <!-- Mobile Navigation Bar -->
+    <div id="mobile-nav" class="lg:hidden flex justify-around items-center shadow-lg">
+        <button data-section="tracker" class="nav-button mobile-nav-button flex flex-col items-center p-1 rounded-lg text-gray-600 ios-tab-active">
+            <i data-lucide="wallet" class="w-5 h-5"></i>
+            <span class="text-xs">Tracker</span>
+        </button>
+        <button data-section="reports" class="nav-button mobile-nav-button flex flex-col items-center p-1 rounded-lg text-gray-600">
+            <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+            <span class="text-xs">Reports</span>
+        </button>
+        <button data-section="calendar" class="nav-button mobile-nav-button flex flex-col items-center p-1 rounded-lg text-gray-600">
+            <i data-lucide="calendar-check" class="w-5 h-5"></i>
+            <span class="text-xs">Calendar</span>
+        </button>
+        <button data-section="settings" class="nav-button mobile-nav-button flex flex-col items-center p-1 rounded-lg text-gray-600">
+            <i data-lucide="settings" class="w-5 h-5"></i>
+            <span class="text-xs">Settings</span>
+        </button>
     </div>
 
     <!-- Modal for Confirmation/Info -->
@@ -498,6 +667,35 @@
             <div class="flex justify-end space-x-3 pt-3">
                 <button id="modal-cancel-button" class="ios-button bg-gray-400 hover:bg-gray-500 text-sm">Cancel</button>
                 <button id="modal-confirm-button" class="ios-button bg-red-500 hover:bg-red-600 text-sm">Confirm</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Calendar Day Modal -->
+    <div id="calendar-day-modal" class="hidden fixed inset-0 bg-black bg-opacity-40 z-40 flex justify-center items-center p-4">
+        <div class="ios-card w-full max-w-md p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 id="modal-day-title" class="text-2xl font-bold text-gray-900">Date</h3>
+                <button id="modal-day-close" class="p-2 -mr-2 rounded-full hover:bg-gray-100 text-gray-500">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-6">
+                <!-- Logged Transactions -->
+                <div>
+                    <h4 class="text-lg font-semibold text-gray-800 mb-3">Logged Transactions</h4>
+                    <ul id="modal-day-transactions" class="space-y-2 max-h-40 overflow-y-auto">
+                        <!-- Items injected here -->
+                    </ul>
+                </div>
+                <!-- Scheduled Bills -->
+                <div>
+                    <h4 class="text-lg font-semibold text-gray-800 mb-3">Scheduled Items</h4>
+                    <ul id="modal-day-upcoming" class="space-y-2 max-h-40 overflow-y-auto">
+                        <!-- Items injected here -->
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
@@ -526,7 +724,9 @@
             query,
             addDoc,
             Timestamp,
-            where
+            where,
+            runTransaction,
+            writeBatch
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
@@ -534,35 +734,38 @@
         setLogLevel('Debug');
 
         // --- GLOBAL CONFIG & INIT ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyA3Pi_BB5D_uDq9yNYraGyCxg_JukNp66k",
-            authDomain: "studio-2523816271-96710.firebaseapp.com",
-            projectId: "studio-2523816271-96710",
-            storageBucket: "studio-2523816271-96710.firebasestorage.app",
-            messagingSenderId: "79405504947",
-            appId: "1:79405504947:web:69b9ac42b50098cec713c6"
-        };
+        
+        // --- FIX: Reverted to use the __firebase_config variable from the environment ---
+        const firebaseConfig = JSON.parse(__firebase_config);
+
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
 
+        // --- FIX: Reverted to use the __app_id variable from the environment ---
         // Canvas Global Variables
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
         let userId = null;
+        
+        // --- FIREBASE LISTENERS (Unsubscribe Declarations) ---
+        let unsubscribeSettings = null;
+        let unsubscribeTransactions = null;
+        let unsubscribeUpcoming = null;
+        let unsubscribeAccounts = null;
 
         // --- STATE MANAGEMENT ---
         let appState = {
             settings: {
                 partnerA: "Partner A",
                 partnerB: "Partner B",
-                incomeA: 0,
-                incomeB: 0,
                 divisionMethod: "50/50", // 50/50, Proportional, Custom
                 customA: 50,
                 customB: 50,
                 currentDebt: 0, // B owes A (positive) or A owes B (negative)
+                balanceA: 0,
+                balanceB: 0,
             },
             accounts: {
                 asset: ["Cash", "Bank", "Savings"],
@@ -574,12 +777,19 @@
             upcoming: [],
             currentView: "tracker",
             filteredTransactions: [],
+            calendar: {
+                currentMonth: new Date().getMonth(),
+                currentYear: new Date().getFullYear()
+            }
         };
 
         // --- UTILITY FUNCTIONS ---
 
         const formatCurrency = (amount) => {
-            return `₱ ${Math.abs(amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+            if (typeof amount !== 'number') {
+                amount = 0;
+            }
+            return `₱ ${Math.abs(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
         };
 
         const showMessageModal = (title, message, isConfirm = false, onConfirm = () => {}) => {
@@ -592,14 +802,18 @@
             if (isConfirm) {
                 confirmBtn.classList.remove('hidden');
                 cancelBtn.classList.remove('hidden');
+                cancelBtn.textContent = 'Cancel'; // Ensure cancel button text is correct
+                cancelBtn.classList.add('bg-gray-400', 'hover:bg-gray-500');
+                cancelBtn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                
                 confirmBtn.onclick = () => { onConfirm(); modal.classList.add('hidden'); };
                 cancelBtn.onclick = () => { modal.classList.add('hidden'); };
             } else {
                 confirmBtn.classList.add('hidden');
                 cancelBtn.classList.remove('hidden');
                 cancelBtn.textContent = 'Close';
-                cancelBtn.classList.remove('bg-gray-400');
                 cancelBtn.classList.add('bg-blue-500', 'hover:bg-blue-600');
+                cancelBtn.classList.remove('bg-gray-400', 'hover:bg-gray-500');
                 cancelBtn.onclick = () => { modal.classList.add('hidden'); };
             }
 
@@ -610,21 +824,41 @@
             document.getElementById('loading-overlay').classList.toggle('hidden', !show);
         };
 
+        const renderAuthScreen = (showLogin) => {
+            document.getElementById('main-app').classList.toggle('hidden', !showLogin);
+            document.getElementById('login-screen').classList.toggle('hidden', showLogin);
+            // FIX: Always hide the loading screen after this decision is made
+            updateLoading(false);
+        };
+
         const getPartnerNames = () => [appState.settings.partnerA, appState.settings.partnerB];
 
         const getPartnerShare = (isPartnerA) => {
-            const { incomeA, incomeB, divisionMethod, customA, customB } = appState.settings;
-            let share = 0.5; // Default 50/50
-
-            if (divisionMethod === "Proportional") {
-                const totalIncome = incomeA + incomeB;
-                if (totalIncome > 0) {
-                    share = isPartnerA ? (incomeA / totalIncome) : (incomeB / totalIncome);
-                }
-            } else if (divisionMethod === "Custom") {
-                share = isPartnerA ? (customA / 100) : (customB / 100);
+            const { divisionMethod, customA, customB, balanceA, balanceB } = appState.settings;
+            
+            if (divisionMethod === "50/50") {
+                return 0.5;
             }
-            return share;
+            if (divisionMethod === "Custom") {
+                return isPartnerA ? (customA / 100) : (customB / 100);
+            }
+            
+            // --- NEW: Proportional calculation based on STANDING BALANCE ---
+            if (divisionMethod === "Proportional") {
+                // Only consider positive balances for proportional split
+                const positiveBalanceA = Math.max(0, balanceA || 0);
+                const positiveBalanceB = Math.max(0, balanceB || 0);
+                
+                const totalPositiveBalance = positiveBalanceA + positiveBalanceB;
+
+                if (totalPositiveBalance === 0) {
+                    return 0.5; // Default to 50/50 if no positive balance
+                }
+                
+                return isPartnerA ? (positiveBalanceA / totalPositiveBalance) : (positiveBalanceB / totalPositiveBalance);
+            }
+            
+            return 0.5; // Default fallback
         };
 
         /**
@@ -657,7 +891,10 @@
         };
 
         // --- FIREBASE PATHS & CRUD ---
-
+        
+        // These paths are designed for multi-tenancy *within* a single user,
+        // which is how the app-building environment works.
+        // For local use, they still work perfectly fine.
         const getSettingsPath = () => `artifacts/${appId}/users/${userId}/settings/config`;
         const getCustomAccountsPath = () => `artifacts/${appId}/users/${userId}/accounts/types`;
         const getTransactionsColRef = () => collection(db, `artifacts/${appId}/users/${userId}/transactions`);
@@ -666,53 +903,95 @@
         const saveSettings = async (data) => {
             if (!userId) return;
             try {
+                // This is the correct function: just save the settings data
                 await setDoc(doc(db, getSettingsPath()), data, { merge: true });
-                // Don't show success here, let the onSnapshot handle UI updates
             } catch (e) {
                 console.error("Error saving settings: ", e);
                 showMessageModal("Error", "Failed to save settings. Check console for details.");
             }
         };
 
+        // This was the function that was incorrectly named 'saveSettings'
         const addTransaction = async (data) => {
             if (!userId) return;
             try {
-                const docRef = await addDoc(getTransactionsColRef(), {
+                // 1. Add the transaction document
+                await addDoc(getTransactionsColRef(), {
                     ...data,
                     timestamp: Timestamp.now(),
-                    date: Timestamp.fromDate(new Date(data.date))
+                    date: Timestamp.fromDate(data.date) // This line is correct for a transaction
                 });
 
-                // Update total debt if it was a shared expense
-                if (data.debtType === "Shared" && data.type === "Expense") {
-                    const adjustment = calculateDebtAdjustment(data.amount, data.whoPaid);
-                    await updateDoc(doc(db, getSettingsPath()), {
-                        currentDebt: appState.settings.currentDebt + adjustment
-                    });
-                } else if (data.debtType === "DebtPayment") {
-                     // We simplified: only update debt on reconciliation, DebtPayment is just a log of money transfer.
-                }
+                // 2. Update standing balances using a transaction for safety
+                await runTransaction(db, async (transaction) => {
+                    const settingsRef = doc(db, getSettingsPath());
+                    const settingsSnap = await transaction.get(settingsRef);
+                    
+                    let settingsData = settingsSnap.exists() ? settingsSnap.data() : { balanceA: 0, balanceB: 0 };
+                    let newBalanceA = settingsData.balanceA || 0;
+                    let newBalanceB = settingsData.balanceB || 0;
+                    const isPartnerA = data.whoPaid === appState.settings.partnerA;
+
+                    if (data.type === 'Income') {
+                        if (isPartnerA) { newBalanceA += data.amount; } else { newBalanceB += data.amount; }
+                    } else if (data.type === 'Expense') {
+                        // Debt Payment does not affect standing balance, it's just a transfer
+                        if (data.debtType !== 'DebtPayment') {
+                            if (isPartnerA) { newBalanceA -= data.amount; } else { newBalanceB -= data.amount; }
+                        }
+                    }
+                    
+                    transaction.set(settingsRef, {
+                        balanceA: newBalanceA,
+                        balanceB: newBalanceB
+                    }, { merge: true });
+                });
 
                 document.getElementById('expense-form').reset();
+                // Set date back to today
+                document.getElementById('expense-date').valueAsDate = new Date();
+                // Reset dynamic form
+                updateTransactionFormUI(null);
+                
             } catch (e) {
                 console.error("Error adding transaction: ", e);
                 showMessageModal("Error", "Failed to add transaction.");
             }
         };
 
-        const deleteTransaction = async (id, isSharedExpense, amount, whoPaid, type) => {
+        const deleteTransaction = async (id, isSharedExpense, amount, whoPaid, type, debtType) => {
             if (!userId) return;
             try {
+                // 1. Delete the transaction document
                 await deleteDoc(doc(getTransactionsColRef(), id));
 
-                // Recalculate debt only if it was a shared expense/income
-                if (isSharedExpense && type === "Expense") {
-                    const adjustment = calculateDebtAdjustment(amount, whoPaid);
-                    // Deleting the transaction reverses the debt adjustment
-                    await updateDoc(doc(db, getSettingsPath()), {
-                        currentDebt: appState.settings.currentDebt - adjustment
-                    });
-                }
+                // 2. Update standing balances (reversal) using a transaction
+                await runTransaction(db, async (transaction) => {
+                    const settingsRef = doc(db, getSettingsPath());
+                    const settingsSnap = await transaction.get(settingsRef);
+
+                    if (!settingsSnap.exists()) return; // Nothing to update
+                    
+                    let settingsData = settingsSnap.data();
+                    let newBalanceA = settingsData.balanceA || 0;
+                    let newBalanceB = settingsData.balanceB || 0;
+                    const isPartnerA = whoPaid === appState.settings.partnerA;
+
+                    if (type === 'Income') {
+                        if (isPartnerA) { newBalanceA -= amount; } else { newBalanceB -= amount; }
+                    } else if (type === 'Expense') {
+                        // Only reverse balance change if it wasn't a debt payment
+                        if (debtType !== 'DebtPayment') {
+                            if (isPartnerA) { newBalanceA += amount; } else { newBalanceB += amount; }
+                        }
+                    }
+
+                    transaction.set(settingsRef, {
+                        balanceA: newBalanceA,
+                        balanceB: newBalanceB
+                    }, { merge: true });
+                });
+
             } catch (e) {
                 console.error("Error deleting transaction: ", e);
                 showMessageModal("Error", "Failed to delete transaction.");
@@ -725,9 +1004,13 @@
                 await addDoc(getUpcomingColRef(), {
                     ...data,
                     timestamp: Timestamp.now(),
-                    date: Timestamp.fromDate(new Date(data.date))
+                    date: Timestamp.fromDate(data.date),
+                    isComplete: false // Ensure this is set
                 });
                 document.getElementById('upcoming-form').reset();
+                // Set date back to today
+                document.getElementById('upcoming-date').valueAsDate = new Date();
+                document.getElementById('recurring-settings').classList.add('hidden');
             } catch (e) {
                 console.error("Error adding upcoming expense: ", e);
                 showMessageModal("Error", "Failed to schedule expense.");
@@ -744,26 +1027,36 @@
             }
         };
 
+        const toggleUpcomingComplete = async (id, currentStatus) => {
+            if (!userId) return;
+            try {
+                await updateDoc(doc(getUpcomingColRef(), id), {
+                    isComplete: !currentStatus
+                });
+            } catch (e) {
+                console.error("Error updating upcoming item: ", e);
+                showMessageModal("Error", "Failed to update item status.");
+            }
+        };
+
         const saveCustomAccounts = async (type, name) => {
             if (!userId) return;
             try {
                 const trimmedName = name.trim();
+                if (trimmedName === "") return; // Don't save empty strings
+                
                 const existingItems = appState.accounts[type] || [];
 
-                if (!existingItems.includes(trimmedName) && trimmedName !== "") {
-                    // FIX: Use spread operator to ensure non-mutating array creation and correctly update state
+                if (!existingItems.includes(trimmedName)) {
                     const newItems = [...existingItems, trimmedName];
-
-                    // Construct the update payload for Firestore, only updating the specific type array
-                    const updatedAccounts = {
-                        [type]: newItems
-                    };
-
-                    // Use setDoc with merge:true on the document
+                    const updatedAccounts = { [type]: newItems };
                     await setDoc(doc(db, getCustomAccountsPath()), updatedAccounts, { merge: true });
                     document.getElementById('custom-type-name').value = '';
+                } else {
+                    showMessageModal("Item Exists", "This category or account name already exists.");
                 }
-            } catch (e) {
+            } catch (e)
+             {
                 console.error("Error adding custom item: ", e);
                 showMessageModal("Error", "Failed to add custom item.");
             }
@@ -773,47 +1066,62 @@
             if (!userId) return;
             try {
                 const currentItems = appState.accounts[type] || [];
-                
-                // Filter creates a new array, no mutation issue here
                 const updatedItems = currentItems.filter(item => item !== name);
-                
-                // Construct payload to update only the relevant field
                 const updatedAccounts = { [type]: updatedItems }; 
-
-                // Use setDoc with merge:true for robust updating
                 await setDoc(doc(db, getCustomAccountsPath()), updatedAccounts, { merge: true });
             } catch (e) {
                 console.error("Error deleting custom item: ", e);
                 showMessageModal("Error", "Failed to delete custom item.");
             }
         };
+        
+
+        const recalculateAndSaveDebt = async () => {
+            if (!userId) return;
+
+            let totalDebt = 0;
+            appState.transactions.forEach(t => {
+                if (t.type === 'Expense' && t.debtType === 'Shared') {
+                    totalDebt += calculateDebtAdjustment(t.amount, t.whoPaid);
+                }
+                // Handle DebtPayment as a direct debt adjustment
+                if (t.type === 'Expense' && t.debtType === 'DebtPayment') {
+                    // This is a payment *from* whoPaid.
+                    const isPartnerAPaid = t.whoPaid === appState.settings.partnerA;
+                    if (isPartnerAPaid) {
+                        // A paid B, increasing A's debt (B owes A less)
+                        totalDebt -= t.amount;
+                    } else {
+                        // B paid A, decreasing A's debt (B owes A more)
+                        totalDebt += t.amount;
+                    }
+                }
+            });
+
+            // Save this new total *only if it's different* to avoid looping snapshots
+            if (Math.round(totalDebt * 100) !== Math.round(appState.settings.currentDebt * 100)) {
+                await saveSettings({ currentDebt: totalDebt });
+            }
+        };
 
         // --- RENDER FUNCTIONS ---
 
-        const renderAuthScreen = (show) => {
-            document.getElementById('login-screen').classList.toggle('hidden', !show);
-            document.getElementById('main-app').classList.toggle('hidden', show);
-        };
-
         const renderApp = () => {
+            if (!userId) return; // Don't render if not logged in
+
             // 1. Update Partner Names in Tracker/Forms
             const [partnerA, partnerB] = getPartnerNames();
             const whoPaidSelect = document.getElementById('expense-who-paid');
-            // Store current selected value to maintain selection across renders
             const currentPaid = whoPaidSelect.value; 
             whoPaidSelect.innerHTML = `<option value="" disabled selected>Select Partner</option>
                                        <option value="${partnerA}">${partnerA}</option>
                                        <option value="${partnerB}">${partnerB}</option>`;
             whoPaidSelect.value = currentPaid || "";
 
-            // 2. Update Custom Selects
-            const expenseCategorySelect = document.getElementById('expense-category');
-            const currentCat = expenseCategorySelect.value;
-            const categories = [...appState.accounts.expense, ...appState.accounts.income];
-            expenseCategorySelect.innerHTML = `<option value="" disabled selected>Select Category</option>` +
-                                              categories.map(c => `<option value="${c}">${c}</option>`).join('');
-            expenseCategorySelect.value = currentCat || "";
+            // 2. Update Transaction Form UI (Dynamic fields)
+            updateTransactionFormUI(document.getElementById('expense-type').value);
 
+            // 3. Update Custom Selects (Accounts)
             const expenseAccountSelect = document.getElementById('expense-account');
             const currentAcc = expenseAccountSelect.value;
             const accounts = [...appState.accounts.asset, ...appState.accounts.liability];
@@ -822,19 +1130,22 @@
             expenseAccountSelect.value = currentAcc || "";
 
 
-            // 3. Render Tracker Section
+            // 4. Render Tracker Section
             renderTrackerSummary();
             renderTransactionsTable();
 
-            // 4. Render Settings
+            // 5. Render Settings
             renderSettings();
+            
+            // 6. Render Upcoming List (always, as it's part of calendar page)
+            renderUpcomingList();
 
-            // 5. Render Calendar (if in view)
+            // 7. Render Calendar (if in view)
             if (appState.currentView === 'calendar') {
                 renderCalendar();
             }
 
-            // 6. Update User Info
+            // 8. Update User Info
             document.getElementById('user-info').textContent = `User ID: ${userId.slice(0, 8)}...`; // Show truncated ID
 
             // Re-render lucide icons
@@ -847,7 +1158,7 @@
             let debtStatusText = '';
             let subStatusText = '';
 
-            if (currentDebt === 0) {
+            if (currentDebt === 0 || Math.abs(currentDebt) < 0.01) {
                 debtStatusText = `All settled up!`;
                 subStatusText = "Congratulations, you are balanced!";
             } else if (currentDebt > 0) {
@@ -860,13 +1171,12 @@
                 subStatusText = `Reconcile the ${debtAmount} debt now.`;
             }
 
-            // Reconciliation Button
             const reconcileButton = currentDebt !== 0
                 ? `<button id="reconcile-button" class="ios-button bg-green-500 hover:bg-green-600 mt-4 flex items-center justify-center w-full sm:w-auto">
                       <i data-lucide="check-circle" class="w-5 h-5 mr-2"></i>
                       Reconcile Balance
                    </button>`
-                : '<div class="h-10"></div>'; // Placeholder space
+                : '<div class="h-10 mt-4"></div>'; // Placeholder space
 
             document.getElementById('current-balance-summary').innerHTML = `
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
@@ -878,9 +1188,9 @@
                     ${reconcileButton}
                 </div>
             `;
-            // Re-render icons after injection
+            
             lucide.createIcons();
-            // Attach event listener for reconciliation
+            
             if (currentDebt !== 0) {
                 document.getElementById('reconcile-button').onclick = () => showMessageModal(
                     "Reconcile Debt",
@@ -895,6 +1205,7 @@
         };
 
         const renderTransactionsTable = () => {
+            // Use filtered transactions if they exist, otherwise use all
             const transactions = appState.filteredTransactions.length > 0 ? appState.filteredTransactions : appState.transactions;
             const tableBody = document.getElementById('transactions-table-body');
             tableBody.innerHTML = ''; // Clear previous rows
@@ -907,9 +1218,16 @@
             transactions.forEach((t, index) => {
                 const isExpense = t.type === 'Expense';
                 const colorClass = isExpense ? 'peso-color-expense' : 'peso-color-income';
-                const debtInfo = t.debtType === 'Shared' && isExpense
-                    ? (t.whoPaid === appState.settings.partnerA ? `B owes A` : `A owes B`)
-                    : 'N/A';
+                let debtInfo = 'N/A';
+                if (isExpense) {
+                    if (t.debtType === 'Shared') {
+                        debtInfo = (t.whoPaid === appState.settings.partnerA ? `B owes A` : `A owes B`);
+                    } else if (t.debtType === 'Personal') {
+                        debtInfo = 'Personal';
+                    } else if (t.debtType === 'DebtPayment') {
+                        debtInfo = 'Payment';
+                    }
+                }
 
                 const row = document.createElement('tr');
                 row.className = `table-row-hover table-row-zebra`;
@@ -926,7 +1244,8 @@
                                 data-shared="${t.debtType === 'Shared'}"
                                 data-amount="${t.amount}"
                                 data-paid="${t.whoPaid}"
-                                data-type="${t.type}">
+                                data-type="${t.type}"
+                                data-debt-type="${t.debtType}">
                             <i data-lucide="trash-2" class="w-4 h-4 inline"></i>
                         </button>
                     </td>
@@ -934,21 +1253,20 @@
                 tableBody.appendChild(row);
             });
 
-            // Re-render icons
             lucide.createIcons();
 
-            // Attach delete listeners
             document.querySelectorAll('.delete-btn').forEach(btn => {
                 btn.onclick = () => showMessageModal(
                     "Confirm Deletion",
-                    "Are you sure you want to delete this transaction? This will also recalculate the debt balance if it was a shared expense.",
+                    "Are you sure you want to delete this transaction? This will also recalculate the debt balance.",
                     true,
                     () => deleteTransaction(
                         btn.dataset.id,
                         btn.dataset.shared === 'true',
                         parseFloat(btn.dataset.amount),
                         btn.dataset.paid,
-                        btn.dataset.type
+                        btn.dataset.type,
+                        btn.dataset.debtType
                     )
                 );
             });
@@ -958,9 +1276,20 @@
             let filtered = [...appState.transactions];
 
             const particularFilter = document.getElementById('filter-particular').value.toLowerCase();
-            const dateStart = document.getElementById('filter-date-start').value;
-            const dateEnd = document.getElementById('filter-date-end').value;
+            const dateStartInput = document.getElementById('filter-date-start');
+            const dateEndInput = document.getElementById('filter-date-end');
             const sortBy = document.getElementById('sort-by').value;
+
+            // --- FIX: Use valueAsDate for correct local date filtering ---
+            const dateStart = dateStartInput.valueAsDate;
+            const dateEnd = dateEndInput.valueAsDate;
+
+            if (dateStart) {
+                dateStart.setHours(0, 0, 0, 0); // Start of the day
+            }
+            if (dateEnd) {
+                dateEnd.setHours(23, 59, 59, 999); // Include the whole end day
+            }
 
             // 1. Filter
             filtered = filtered.filter(t => {
@@ -971,13 +1300,10 @@
                     if (!t.particular.toLowerCase().includes(particularFilter)) pass = false;
                 }
                 if (dateStart) {
-                    const start = new Date(dateStart);
-                    if (tDate.getTime() < start.getTime()) pass = false;
+                    if (tDate.getTime() < dateStart.getTime()) pass = false;
                 }
                 if (dateEnd) {
-                    const end = new Date(dateEnd);
-                    end.setHours(23, 59, 59, 999); // Include the whole end day
-                    if (tDate.getTime() > end.getTime()) pass = false;
+                    if (tDate.getTime() > dateEnd.getTime()) pass = false;
                 }
                 return pass;
             });
@@ -998,18 +1324,31 @@
                 }
             });
 
-            appState.filteredTransactions = filtered;
+            // If filters are active, use the filtered list. Otherwise, clear it.
+            if (particularFilter || dateStart || dateEnd) {
+                 appState.filteredTransactions = filtered;
+            } else {
+                 appState.filteredTransactions = []; // Clear filter
+            }
+
+            // Re-render the table with the (potentially filtered) list
             renderTransactionsTable();
         };
 
         const renderSettings = () => {
-            const { partnerA, partnerB, incomeA, incomeB, divisionMethod, customA, customB } = appState.settings;
+            const { partnerA, partnerB, divisionMethod, customA, customB, balanceA, balanceB } = appState.settings;
 
             // Partner & Income
             document.getElementById('partner-a-name').value = partnerA;
             document.getElementById('partner-b-name').value = partnerB;
-            document.getElementById('partner-a-income').value = incomeA;
-            document.getElementById('partner-b-income').value = incomeB;
+            document.getElementById('partner-a-balance').value = balanceA || 0;
+            document.getElementById('partner-b-balance').value = balanceB || 0;
+            
+            // Update standing balance display
+            document.getElementById('setting-partner-a-name').textContent = `${partnerA || 'Partner A'}:`;
+            document.getElementById('setting-partner-b-name').textContent = `${partnerB || 'Partner B'}:`;
+            document.getElementById('setting-balance-a').textContent = formatCurrency(balanceA || 0);
+            document.getElementById('setting-balance-b').textContent = formatCurrency(balanceB || 0);
 
             // Division Method
             const divisionRadio = document.querySelector(`input[name="division-method"][value="${divisionMethod}"]`);
@@ -1021,15 +1360,20 @@
             const customFields = document.getElementById('custom-percentage-fields');
             customFields.classList.toggle('hidden', divisionMethod !== 'Custom');
 
-            // Custom Items List
-            const customList = document.getElementById('custom-items-list');
-            customList.innerHTML = '';
+            // Custom Items List (Accordion)
             ['asset', 'liability', 'income', 'expense'].forEach(type => {
-                const title = type.charAt(0).toUpperCase() + type.slice(1) + 's';
+                const listId = `custom-list-${type}`;
+                const listUl = document.getElementById(listId).querySelector('ul');
+                listUl.innerHTML = ''; // Clear previous
+                
                 const items = appState.accounts[type] || [];
-                customList.innerHTML += `<li class="font-bold text-gray-800 mt-4 border-b border-blue-100 pb-1">${title}</li>`;
+                
+                if (items.length === 0) {
+                     listUl.innerHTML += `<li class="text-gray-400 text-sm italic py-1">No ${type} items added.</li>`;
+                }
+                
                 items.forEach(item => {
-                    customList.innerHTML += `
+                    listUl.innerHTML += `
                         <li class="flex justify-between items-center text-gray-700 py-2 border-b border-gray-100 last:border-b-0">
                             <span class="font-medium">${item}</span>
                             <button class="text-red-500 hover:text-red-700 text-xs delete-custom-btn p-1 rounded-full hover:bg-red-50"
@@ -1045,6 +1389,8 @@
 
             // Attach delete listeners for custom items
             document.querySelectorAll('.delete-custom-btn').forEach(btn => {
+                // Remove old listener to prevent duplicates
+                btn.onclick = null; 
                 btn.onclick = () => showMessageModal(
                     "Confirm Deletion",
                     `Are you sure you want to delete the custom item '<strong>${btn.dataset.name}</strong>'?`,
@@ -1054,351 +1400,353 @@
             });
         };
 
-        // --- REPORT GENERATION ---
-        const generateReport = () => {
-            const transactions = appState.transactions;
-            const startDateStr = document.getElementById('report-date-start').value;
-            const endDateStr = document.getElementById('report-date-end').value;
-            const [partnerA, partnerB] = getPartnerNames();
-            const partnerAShare = getPartnerShare(true);
-
-            const startDate = startDateStr ? new Date(startDateStr) : new Date(0);
-            const endDate = endDateStr ? new Date(endDateStr) : new Date();
-            // Adjust endDate to include the whole day
-            if (endDateStr) endDate.setHours(23, 59, 59, 999);
-
-            let reportTransactions = transactions.filter(t => {
-                const tDate = new Date(t.date.seconds * 1000);
-                return tDate >= startDate && tDate <= endDate;
-            });
+        const updateTransactionFormUI = (type) => {
+            const debtWrapper = document.getElementById('debt-field-wrapper');
+            const categoryLabel = document.getElementById('category-field-label');
+            const whoPaidLabel = document.getElementById('who-paid-field-label');
+            const categorySelect = document.getElementById('expense-category');
             
-            reportTransactions.sort((a, b) => b.date.seconds - a.date.seconds);
+            const currentCategory = categorySelect.value;
 
-            // 1. Settlement Summary Calculation
-            let totalSharedExpense = 0;
-            let totalPaidA = 0;
-            let totalPaidB = 0;
-
-            reportTransactions.forEach(t => {
-                const tAmount = parseFloat(t.amount);
-                if (t.type === 'Expense' && t.debtType === 'Shared') {
-                    totalSharedExpense += tAmount;
-                    if (t.whoPaid === partnerA) {
-                        totalPaidA += tAmount;
-                    } else if (t.whoPaid === partnerB) {
-                        totalPaidB += tAmount;
-                    }
-                }
-            });
-
-            const expectedShareA = totalSharedExpense * partnerAShare;
-            const expectedShareB = totalSharedExpense * (1 - partnerAShare);
-
-            // If A paid more than their share, B owes A (positive debt).
-            const netDebt = totalPaidA - expectedShareA; 
-
-            let settlementText = '';
-            let settlementColor = 'text-gray-800';
-
-            if (netDebt > 0) {
-                settlementText = `${partnerB} needs to pay ${partnerA} <strong>${formatCurrency(netDebt)}</strong> to balance shared expenses.`;
-                settlementColor = 'text-red-600';
-            } else if (netDebt < 0) {
-                settlementText = `${partnerA} needs to pay ${partnerB} <strong>${formatCurrency(netDebt)}</strong> to balance shared expenses.`;
-                settlementColor = 'text-red-600';
-            } else {
-                settlementText = "Shared expenses are perfectly balanced in this period!";
-                settlementColor = 'text-green-600';
+            if (type === 'Income') {
+                debtWrapper.classList.add('hidden');
+                whoPaidLabel.textContent = 'Who Received';
+                categoryLabel.textContent = 'Income Category';
+                
+                // Populate categories for Income
+                categorySelect.innerHTML = `<option value="" disabled selected>Select Category</option>` +
+                    appState.accounts.income.map(c => `<option value="${c}">${c}</option>`).join('');
+                
+            } else { // Expense or null/other
+                debtWrapper.classList.remove('hidden');
+                whoPaidLabel.textContent = 'Who Paid';
+                categoryLabel.textContent = 'Expense Category';
+                
+                // Populate categories for Expense
+                categorySelect.innerHTML = `<option value="" disabled selected>Select Category</option>` +
+                    appState.accounts.expense.map(c => `<option value="${c}">${c}</option>`).join('');
             }
-
-            const divisionRatio = (partnerAShare * 100).toFixed(0) + '/' + ((1 - partnerAShare) * 100).toFixed(0);
-
-            let summaryHTML = `
-                <div class="space-y-4 text-gray-700">
-                    <p><strong>Division Method:</strong> ${appState.settings.divisionMethod} (${divisionRatio} Split)</p>
-                    <p><strong>Total Shared Expenses:</strong> <span class="font-bold text-gray-900">${formatCurrency(totalSharedExpense)}</span></p>
-                    <hr class="border-gray-100">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <p class="font-semibold">${partnerA} Paid:</p>
-                            <p class="text-xl font-bold text-blue-600">${formatCurrency(totalPaidA)}</p>
-                            <p class="text-sm text-gray-500">Expected: ${formatCurrency(expectedShareA)}</p>
-                        </div>
-                        <div>
-                            <p class="font-semibold">${partnerB} Paid:</p>
-                            <p class="text-xl font-bold text-blue-600">${formatCurrency(totalPaidB)}</p>
-                            <p class="text-sm text-gray-500">Expected: ${formatCurrency(expectedShareB)}</p>
-                        </div>
-                    </div>
-                    <p class="text-lg mt-4 pt-4 border-t font-semibold ${settlementColor}">
-                        <i data-lucide="${netDebt === 0 ? 'award' : 'alert-triangle'}" class="w-5 h-5 inline mr-2"></i>
-                        ${settlementText}
-                    </p>
-                </div>
-            `;
-            document.getElementById('settlement-summary').innerHTML = summaryHTML;
-
-
-            // 2. Category Spending
-            const categorySpending = reportTransactions.reduce((acc, t) => {
-                if (t.type === 'Expense') {
-                    acc[t.category] = (acc[t.category] || 0) + parseFloat(t.amount);
-                }
-                return acc;
-            }, {});
-
-            let totalExpense = Object.values(categorySpending).reduce((sum, amount) => sum + amount, 0);
-
-            let categoryListHTML = '';
-            const categoriesSorted = Object.entries(categorySpending).sort(([, a], [, b]) => b - a);
-
-            categoriesSorted.forEach(([category, amount]) => {
-                const percentage = totalExpense > 0 ? ((amount / totalExpense) * 100).toFixed(1) : 0;
-                categoryListHTML += `
-                    <li>
-                        <div class="flex justify-between text-base">
-                            <span class="font-medium text-gray-800">${category}</span>
-                            <span class="font-semibold text-gray-700">${formatCurrency(amount)}</span>
-                        </div>
-                        <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
-                            <div class="bg-red-500 h-2 rounded-full transition-all duration-500" style="width: ${percentage}%" title="${percentage}%"></div>
-                        </div>
-                        <p class="text-xs text-gray-500 mt-1">${percentage}% of total expenses</p>
-                    </li>
-                `;
-            });
-            document.getElementById('category-list').innerHTML = `<ul class="space-y-5">${categoryListHTML || '<p class="text-gray-500">No expenses in this range.</p>'}</ul>`;
-
-
-            // 3. Detailed Transaction Overview (Re-use renderTransactionsTable logic)
-            renderReportTransactionsTable(reportTransactions);
-            lucide.createIcons();
-        };
-
-        const renderReportTransactionsTable = (transactions) => {
-            let tableHTML = `
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead>
-                        <tr>
-                            <th class="table-header w-20">Date</th>
-                            <th class="table-header">Particular</th>
-                            <th class="table-header w-32 text-right">Amount (₱)</th>
-                            <th class="table-header w-32">Who Paid</th>
-                            <th class="table-header w-32">Category</th>
-                            <th class="table-header w-24">Split Type</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-100">
-            `;
-
-            if (transactions.length === 0) {
-                tableHTML += '<tr><td colspan="6" class="text-center py-6 text-gray-500">No transactions match the filter range.</td></tr>';
-            } else {
-                transactions.forEach(t => {
-                    const colorClass = t.type === 'Expense' ? 'peso-color-expense' : 'peso-color-income';
-                    tableHTML += `
-                        <tr class="table-row-hover table-row-zebra">
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${new Date(t.date.seconds * 1000).toLocaleDateString()}</td>
-                            <td class="px-4 py-3 font-medium text-gray-800">${t.particular}</td>
-                            <td class="px-4 py-3 font-bold ${colorClass} text-right">${formatCurrency(t.amount)}</td>
-                            <td class="px-4 py-3 text-sm text-gray-600">${t.whoPaid}</td>
-                            <td class="px-4 py-3 text-sm">${t.category}</td>
-                            <td class="px-4 py-3 text-sm font-semibold text-gray-700">${t.debtType}</td>
-                        </tr>
-                    `;
-                });
+            
+            // Try to re-select the previous category if it still exists in the new list
+            categorySelect.value = currentCategory || "";
+            // If the old category isn't in the new list, reset to placeholder
+            if (categorySelect.value === "") {
+                categorySelect.value = "";
             }
-
-            tableHTML += '</tbody></table>';
-            document.getElementById('reports-transactions-table').innerHTML = tableHTML;
         };
-
-
-        // --- CALENDAR RENDER ---
-
-        let currentCalendarDate = new Date();
 
         const renderCalendar = () => {
-            const date = new Date(currentCalendarDate); // Use a clone
-            date.setDate(1); // Set to the 1st of the month
+            const { currentMonth, currentYear } = appState.calendar;
+            const calendarGrid = document.getElementById('calendar-grid');
+            document.getElementById('calendar-title').textContent = new Date(currentYear, currentMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            
+            calendarGrid.innerHTML = ''; // Clear grid
 
-            const month = date.getMonth();
-            const year = date.getFullYear();
-
-            document.getElementById('calendar-title').textContent = date.toLocaleString('en-US', { month: 'long', year: 'numeric' });
-
-            const grid = document.getElementById('calendar-grid');
-            grid.innerHTML = ''; // Clear previous grid
-
-            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-            dayNames.forEach(day => {
-                const dayEl = document.createElement('div');
-                dayEl.className = 'text-base font-bold text-gray-600 py-3 border-b';
-                dayEl.textContent = day;
-                grid.appendChild(dayEl);
+            // Day headers
+            ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(day => {
+                calendarGrid.innerHTML += `<div class="text-center font-semibold text-gray-500 text-sm py-2">${day}</div>`;
             });
 
-            let firstDayIndex = date.getDay();
+            const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 
-            // Fill leading empty cells
-            for (let i = 0; i < firstDayIndex; i++) {
-                grid.appendChild(document.createElement('div'));
+            // Blank days at the start
+            for (let i = 0; i < firstDayOfMonth; i++) {
+                calendarGrid.innerHTML += `<div class="border-t border-gray-200"></div>`;
             }
-            
-            // Loop through days of the month
-            let displayDate = new Date(year, month, 1);
+
             const today = new Date();
+            today.setHours(0, 0, 0, 0);
 
-            while (displayDate.getMonth() === month) {
-                const day = displayDate.getDate();
-                const dayEl = document.createElement('div');
-                dayEl.className = 'p-2 h-24 border rounded-xl m-1 relative flex flex-col items-center cursor-pointer transition-all bg-white hover:shadow-md';
+            // All days in the month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(currentYear, currentMonth, day);
+                const dateString = date.toISOString().split('T')[0];
+                const isToday = date.getTime() === today.getTime();
                 
-                // Highlight today's date
-                if (displayDate.toDateString() === today.toDateString()) {
-                    dayEl.classList.add('bg-blue-100', 'border-blue-500', 'border-2');
-                }
-
-                dayEl.innerHTML = `<span class="text-xl font-bold text-gray-800">${day}</span>`;
-
-                const eventsForDay = appState.upcoming.filter(e => {
-                    const eDate = new Date(e.date.seconds * 1000);
-                    // Check for exact date match
-                    const isExactMatch = eDate.getDate() === day && eDate.getMonth() === month && eDate.getFullYear() === year;
-                    // Check for recurring match: if recurring is true, the recurring day matches, and the current date is after the initial scheduled date
-                    const isRecurring = e.recurring && parseInt(e.recurringDay) === day && (eDate.getTime() <= displayDate.getTime());
-
-                    return isExactMatch || isRecurring;
+                // Find transactions for this day
+                const transactionsToday = appState.transactions.filter(t => {
+                    const tDate = new Date(t.date.seconds * 1000);
+                    tDate.setHours(0, 0, 0, 0);
+                    return tDate.getTime() === date.getTime();
+                });
+                
+                // Find upcoming items for this day
+                const upcomingToday = appState.upcoming.filter(u => {
+                    const uDate = new Date(u.date.seconds * 1000);
+                    uDate.setHours(0, 0, 0, 0);
+                    return uDate.getTime() === date.getTime();
                 });
 
-                if (eventsForDay.length > 0) {
-                    const iconContainer = document.createElement('div');
-                    iconContainer.className = 'mt-1 space-y-0.5 w-full overflow-hidden flex flex-col items-start px-1';
-                    
-                    // Show a maximum of 3 events/icons
-                    eventsForDay.slice(0, 3).forEach(event => {
-                        iconContainer.innerHTML += `
-                            <p class="text-xs font-semibold text-red-600 truncate w-full" title="${event.particular} - ${formatCurrency(event.amount)}">
-                                <i data-lucide="calendar-x" class="w-3 h-3 inline mr-1"></i> ${formatCurrency(event.amount)}
-                            </p>
-                        `;
-                    });
-                    if (eventsForDay.length > 3) {
-                         iconContainer.innerHTML += `<p class="text-xs text-gray-400">... ${eventsForDay.length - 3} more</p>`;
-                    }
-                    if (!dayEl.classList.contains('bg-blue-100')) {
-                        dayEl.classList.add('bg-red-50'); // Highlight days with events
-                    }
-                    dayEl.onclick = () => showDayEvents(day, month, year, eventsForDay);
-                    dayEl.appendChild(iconContainer);
-                }
-
-                grid.appendChild(dayEl);
-                displayDate.setDate(displayDate.getDate() + 1);
+                let dayCell = `<div class="border-t border-gray-200 p-2 min-h-32 cursor-pointer hover:bg-blue-50 relative" data-date="${dateString}">
+                                <div class="flex justify-center items-center w-7 h-7 rounded-full ${isToday ? 'bg-blue-500 text-white' : 'text-gray-700'}">${day}</div>
+                                <div class="mt-2 space-y-1">`;
+                
+                // Render pills for transactions
+                transactionsToday.forEach(t => {
+                    const isExpense = t.type === 'Expense';
+                    dayCell += `<div class="calendar-pill ${isExpense ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}">
+                                    <i data-lucide="${isExpense ? 'arrow-down' : 'arrow-up'}" class="w-3 h-3 mr-1"></i>
+                                    ${t.particular}
+                                </div>`;
+                });
+                
+                // Render pills for upcoming items
+                upcomingToday.forEach(u => {
+                    dayCell += `<div class="calendar-pill ${u.isComplete ? 'bg-gray-100 text-gray-400 line-through' : 'bg-yellow-100 text-yellow-700'}">
+                                    <i data-lucide="clock" class="w-3 h-3 mr-1"></i>
+                                    ${u.particular}
+                                </div>`;
+                });
+                
+                dayCell += `</div></div>`;
+                calendarGrid.innerHTML += dayCell;
             }
 
-            // Fill trailing empty cells
-            let lastDayIndex = (displayDate.getDay() - 1 + 7) % 7; // Index of the last day filled
-            if (lastDayIndex !== 6) { // If the month didn't end on Saturday
-                let nextEmptyCell = lastDayIndex + 1;
-                for (let i = nextEmptyCell; i < 7; i++) {
-                    const emptyEl = document.createElement('div');
-                    emptyEl.className = 'bg-gray-50 border rounded-xl m-1';
-                    grid.appendChild(emptyEl);
-                }
-            }
-
-            renderUpcomingList();
             lucide.createIcons();
-        };
-
-        const showDayEvents = (day, month, year, events) => {
-            const dateStr = new Date(year, month, day).toLocaleDateString();
-            let message = `<h5 class="font-bold text-lg mb-3">Upcoming for ${dateStr}:</h5><ul class="space-y-3">`;
-            events.forEach(e => {
-                const recurringText = e.recurring ? ` (<span class="text-blue-600">Monthly on Day ${e.recurringDay}</span>)` : '';
-                message += `<li class="border-b pb-2"><span class="font-semibold text-gray-800">${e.particular}:</span> <span class="peso-color-expense font-bold">${formatCurrency(e.amount)}</span> ${recurringText}</li>`;
-            });
-            message += `</ul>`;
-            showMessageModal(`Events on ${dateStr}`, message);
         };
 
         const renderUpcomingList = () => {
             const list = document.getElementById('upcoming-list');
             list.innerHTML = '';
-            const sortedUpcoming = [...appState.upcoming].sort((a, b) => a.date.seconds - b.date.seconds);
-
-            if (sortedUpcoming.length === 0) {
-                list.innerHTML = '<li class="text-gray-500 italic p-3 bg-gray-50 rounded-lg">No upcoming expenses scheduled.</li>';
+            
+            if (appState.upcoming.length === 0) {
+                list.innerHTML = `<li class="text-center text-gray-500 p-4">No scheduled items.</li>`;
                 return;
             }
+            
+            // Sort: Incomplete first, then by date
+            const sortedList = [...appState.upcoming].sort((a, b) => {
+                if (a.isComplete !== b.isComplete) {
+                    return a.isComplete ? 1 : -1; // Incomplete (false) first
+                }
+                return a.date.seconds - b.date.seconds; // Then by date ascending
+            });
 
-            sortedUpcoming.forEach(item => {
-                const date = new Date(item.date.seconds * 1000).toLocaleDateString();
-                const recurringText = item.recurring ? ` (Recur Day ${item.recurringDay})` : ` (${date})`;
-
+            sortedList.forEach(item => {
+                const date = new Date(item.date.seconds * 1000);
+                const isComplete = item.isComplete;
+                
                 list.innerHTML += `
-                    <li class="flex justify-between items-center bg-gray-50 p-3 rounded-xl text-base shadow-sm hover:bg-white transition-colors">
-                        <div>
-                            <p class="font-bold text-gray-800">${item.particular}</p>
-                            <p class="text-gray-600 text-sm font-medium">${formatCurrency(item.amount)} <span class="text-xs text-blue-500">${recurringText}</span></p>
+                    <li class="flex items-center justify-between p-3 rounded-lg ${isComplete ? 'bg-gray-50' : 'bg-white'}">
+                        <div class="flex items-center space-x-3">
+                            <button class="toggle-complete-btn p-1" data-id="${item.id}" data-status="${isComplete}">
+                                <i data-lucide="${isComplete ? 'check-circle' : 'circle'}" class="w-5 h-5 ${isComplete ? 'text-green-500' : 'text-gray-400'} hover:text-green-600 transition-colors"></i>
+                            </button>
+                            <div>
+                                <p class="font-semibold ${isComplete ? 'text-gray-400 line-through' : 'text-gray-800'}">${item.particular}</p>
+                                <p class="text-sm ${isComplete ? 'text-gray-400' : 'text-gray-600'}">
+                                    ${formatCurrency(item.amount)} on ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                </p>
+                            </div>
                         </div>
-                        <button class="text-red-500 hover:text-red-700 text-xs delete-upcoming-btn p-1 rounded-full hover:bg-red-100 transition-colors"
-                                data-id="${item.id}">
-                            <i data-lucide="trash-2" class="w-4 h-4 inline"></i>
+                        <button class="delete-upcoming-btn p-1 text-gray-400 hover:text-red-500" data-id="${item.id}">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
                         </button>
                     </li>
                 `;
             });
+            
+            lucide.createIcons();
 
-            // Attach delete listeners
+            // Re-attach listeners
+            document.querySelectorAll('.toggle-complete-btn').forEach(btn => {
+                btn.onclick = () => toggleUpcomingComplete(btn.dataset.id, btn.dataset.status === 'true');
+            });
             document.querySelectorAll('.delete-upcoming-btn').forEach(btn => {
                 btn.onclick = () => showMessageModal(
                     "Confirm Deletion",
-                    "Are you sure you want to delete this scheduled expense?",
+                    "Are you sure you want to delete this scheduled item?",
                     true,
                     () => deleteUpcomingExpense(btn.dataset.id)
                 );
             });
         };
+        
+        const renderCalendarModal = (dateString) => {
+            const date = new Date(dateString + 'T00:00:00'); // Ensure local
+            document.getElementById('modal-day-title').textContent = date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+            
+            const transactionsList = document.getElementById('modal-day-transactions');
+            const upcomingList = document.getElementById('modal-day-upcoming');
+            transactionsList.innerHTML = '';
+            upcomingList.innerHTML = '';
 
-        // --- FIREBASE LISTENERS ---
+            // Filter transactions for this day
+            const transactionsToday = appState.transactions.filter(t => {
+                const tDate = new Date(t.date.seconds * 1000);
+                tDate.setHours(0, 0, 0, 0);
+                return tDate.getTime() === date.getTime();
+            });
+            
+            // Filter upcoming items for this day
+            const upcomingToday = appState.upcoming.filter(u => {
+                const uDate = new Date(u.date.seconds * 1000);
+                uDate.setHours(0, 0, 0, 0);
+                return uDate.getTime() === date.getTime();
+            });
 
-        const setupDataListeners = () => {
-            if (!userId) return;
+            // Populate transactions
+            if (transactionsToday.length === 0) {
+                transactionsList.innerHTML = `<li class="text-gray-500 italic">No transactions logged.</li>`;
+            } else {
+                transactionsToday.forEach(t => {
+                    const isExpense = t.type === 'Expense';
+                    transactionsList.innerHTML += `
+                        <li class="flex items-center justify-between">
+                            <span class="font-medium ${isExpense ? 'text-gray-800' : 'text-green-600'}">${t.particular}</span>
+                            <span class="${isExpense ? 'peso-color-expense' : 'peso-color-income'} font-semibold">${formatCurrency(t.amount)}</span>
+                        </li>`;
+                });
+            }
+            
+            // Populate upcoming items
+            if (upcomingToday.length === 0) {
+                upcomingList.innerHTML = `<li class="text-gray-500 italic">No items scheduled.</li>`;
+            } else {
+                upcomingToday.forEach(u => {
+                    upcomingList.innerHTML += `
+                        <li class="flex items-center justify-between">
+                            <span class="font-medium ${u.isComplete ? 'text-gray-400 line-through' : 'text-gray-800'}">${u.particular}</span>
+                            <span class="${u.isComplete ? 'text-gray-400 line-through' : 'text-yellow-700'} font-semibold">${formatCurrency(u.amount)}</span>
+                        </li>`;
+                });
+            }
+            
+            document.getElementById('calendar-day-modal').classList.remove('hidden');
+        };
 
-            // 1. Settings Listener
-            onSnapshot(doc(db, getSettingsPath()), (docSnap) => {
-                if (docSnap.exists()) {
-                    appState.settings = { ...appState.settings, ...docSnap.data() };
+        const renderReport = () => {
+            const dateStartInput = document.getElementById('report-date-start');
+            const dateEndInput = document.getElementById('report-date-end');
+            
+            // --- FIX: Use valueAsDate for correct local date filtering ---
+            const dateStart = dateStartInput.valueAsDate;
+            const dateEnd = dateEndInput.valueAsDate;
+
+            if (dateStart) {
+                dateStart.setHours(0, 0, 0, 0); // Start of the day
+            }
+            if (dateEnd) {
+                dateEnd.setHours(23, 59, 59, 999); // Include the whole end day
+            }
+
+            // Filter transactions
+            const filteredTxns = appState.transactions.filter(t => {
+                const tDate = new Date(t.date.seconds * 1000);
+                let pass = true;
+                if (dateStart && tDate.getTime() < dateStart.getTime()) pass = false;
+                if (dateEnd && tDate.getTime() > dateEnd.getTime()) pass = false;
+                return pass;
+            });
+            
+            // --- Calculations ---
+            const [partnerA, partnerB] = getPartnerNames();
+            let totalIncome = 0;
+            let totalExpense = 0;
+            let partnerAIncome = 0;
+            let partnerBIncome = 0;
+            let partnerAExpenses = 0; // Total paid by A
+            let partnerBExpenses = 0; // Total paid by B
+            let totalShared = 0;
+            let partnerASharedPaid = 0;
+            let partnerBSharedPaid = 0;
+            let categorySpending = {};
+            
+            filteredTxns.forEach(t => {
+                if (t.type === 'Income') {
+                    totalIncome += t.amount;
+                    if (t.whoPaid === partnerA) partnerAIncome += t.amount;
+                    else partnerBIncome += t.amount;
+                } else {
+                    totalExpense += t.amount;
+                    if (t.whoPaid === partnerA) partnerAExpenses += t.amount;
+                    else partnerBExpenses += t.amount;
+
+                    if (t.debtType === 'Shared') {
+                        totalShared += t.amount;
+                        if (t.whoPaid === partnerA) partnerASharedPaid += t.amount;
+                        else partnerBSharedPaid += t.amount;
+                    }
+                    
+                    // Category breakdown
+                    categorySpending[t.category] = (categorySpending[t.category] || 0) + t.amount;
                 }
-                renderApp();
-            }, (error) => console.error("Settings Listener Error: ", error));
+            });
+            
+            // Get the share ratio based on *standing balance* (as per current app logic)
+            const partnerAShare = getPartnerShare(true);
+            const partnerBShare = 1 - partnerAShare;
 
-            // 2. Custom Accounts Listener
-            onSnapshot(doc(db, getCustomAccountsPath()), (docSnap) => {
-                if (docSnap.exists()) {
-                    appState.accounts = { ...appState.accounts, ...docSnap.data() };
-                }
-                renderApp();
-            }, (error) => console.error("Accounts Listener Error: ", error));
+            const partnerADebt = totalShared * partnerAShare;
+            const partnerBDebt = totalShared * partnerBShare;
+            
+            // Settlement: +ve means B owes A, -ve means A owes B
+            const settlement = (partnerBDebt - partnerBSharedPaid);
 
-            // 3. Transactions Listener
-            const qTransactions = query(getTransactionsColRef(), where("timestamp", ">", new Timestamp(0, 0)));
-            onSnapshot(qTransactions, (snapshot) => {
-                appState.transactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                // Default sort: Newest first
-                appState.transactions.sort((a, b) => b.date.seconds - a.date.seconds);
-                appState.filteredTransactions = appState.transactions; // Reset filtered list
-                renderApp();
-            }, (error) => console.error("Transactions Listener Error: ", error));
+            // --- Render ---
+            // Settlement Summary
+            document.getElementById('settlement-summary').innerHTML = `
+                <div class="grid grid-cols-2 gap-4 text-center">
+                    <div>
+                        <p class="text-sm text-gray-500">${partnerA}'s Share</p>
+                        <p class="text-2xl font-bold">${formatCurrency(partnerADebt)}</p>
+                        <p class="text-xs text-gray-500">Paid: ${formatCurrency(partnerASharedPaid)}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">${partnerB}'s Share</p>
+                        <p class="text-2xl font-bold">${formatCurrency(partnerBDebt)}</p>
+                        <p class="text-xs text-gray-500">Paid: ${formatCurrency(partnerBSharedPaid)}</p>
+                    </div>
+                </div>
+                <div class="text-center mt-6 pt-4 border-t">
+                    <p class="text-lg font-semibold">Settlement for this period:</p>
+                    ${settlement === 0 ? `<p class="text-2xl font-bold text-green-600">All Settled!</p>` :
+                    settlement > 0 ? `<p class="text-2xl font-bold peso-color-debt">${partnerB} owes ${partnerA} ${formatCurrency(settlement)}</p>` :
+                    `<p class="text-2xl font-bold peso-color-debt">${partnerA} owes ${partnerB} ${formatCurrency(settlement)}</p>`}
+                </div>
+            `;
+            
+            // Category List
+            const categoryList = document.getElementById('category-list');
+            categoryList.innerHTML = '';
+            if (Object.keys(categorySpending).length === 0) {
+                categoryList.innerHTML = `<p class="text-gray-500">No expenses in this period.</p>`;
+            } else {
+                Object.entries(categorySpending).sort(([,a],[,b]) => b-a).forEach(([name, amount]) => {
+                    categoryList.innerHTML += `
+                        <li class="flex justify-between items-center">
+                            <span class="font-medium text-gray-700">${name}</span>
+                            <span class="font-bold text-gray-900">${formatCurrency(amount)}</span>
+                        </li>`;
+                });
+            }
 
-            // 4. Upcoming Listener
-            const qUpcoming = query(getUpcomingColRef(), where("timestamp", ">", new Timestamp(0, 0)));
-            onSnapshot(qUpcoming, (snapshot) => {
-                appState.upcoming = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderApp();
-            }, (error) => console.error("Upcoming Listener Error: ", error));
+            // Transaction Table
+            const reportsTable = document.getElementById('reports-transactions-table');
+            reportsTable.innerHTML = `
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead><tr>
+                        <th class="table-header">Date</th>
+                        <th class="table-header">Particular</th>
+                        <th class="table-header">Type</th>
+                        <th class="table-header text-right">Amount</th>
+                        <th class="table-header">Who Paid</th>
+                    </tr></thead>
+                    <tbody class="bg-white divide-y divide-gray-100">
+                        ${filteredTxns.length === 0 ? `<tr><td colspan="5" class="text-center py-6 text-gray-500">No transactions in this period.</td></tr>` :
+                        filteredTxns.map(t => `
+                            <tr class="table-row-hover">
+                                <td class="px-4 py-3 text-sm text-gray-500">${new Date(t.date.seconds * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td>
+                                <td class="px-4 py-3 font-medium">${t.particular}</td>
+                                <td class="px-4 py-3 text-sm font-semibold">${t.type}</td>
+                                <td class="px-4 py-3 font-bold text-right ${t.type === 'Expense' ? 'peso-color-expense' : 'peso-color-income'}">${formatCurrency(t.amount)}</td>
+                                <td class="px-4 py-3 text-sm">${t.whoPaid}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
         };
 
         // --- AUTH & INITIALIZATION ---
@@ -1406,215 +1754,338 @@
         const handleAuth = async (isSignup) => {
             const email = document.getElementById('email-input').value;
             const password = document.getElementById('password-input').value;
-            const msgEl = document.getElementById('auth-message');
-            msgEl.textContent = '';
-            if (!email || !password) {
-                msgEl.textContent = "Please enter both email and password.";
-                return;
-            }
-
+            const messageEl = document.getElementById('auth-message');
+            messageEl.textContent = '';
             updateLoading(true);
+
             try {
                 if (isSignup) {
                     await createUserWithEmailAndPassword(auth, email, password);
                 } else {
                     await signInWithEmailAndPassword(auth, email, password);
                 }
+                // onAuthStateChanged will handle the rest
             } catch (error) {
-                const errorMessage = error.message.replace('Firebase: Error (auth/', '').replace(').', '').replace(/-/g, ' ').toUpperCase();
-                msgEl.textContent = `Authentication Failed: ${errorMessage}`;
-            } finally {
-                updateLoading(false);
+                messageEl.textContent = error.message;
+                updateLoading(false); // Stop loading if auth fails
             }
         };
 
-        // REMAINS AS THE PRIMARY AUTH STATE OBSERVER
-        onAuthStateChanged(auth, (user) => {
-            updateLoading(true);
-            if (user) {
-                userId = user.uid;
-                renderAuthScreen(false); // Hide login, show app
-                setupDataListeners();
-            } else {
-                // If user logs out or initial auth fails, show login screen
-                userId = null;
-                renderAuthScreen(true);
-            }
-            updateLoading(false);
-        });
-        
-        // NEW FUNCTION: Handles the mandatory initial sign-in in the Canvas environment
         const initializeAuthAndApp = async () => {
             updateLoading(true);
-            try {
-                // Use the provided initial token if available, otherwise sign in anonymously
-                if (typeof __initial_auth_token !== 'undefined') {
-                    await signInWithCustomToken(auth, __initial_auth_token);
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    // User is signed in
+                    userId = user.uid;
+                    renderAuthScreen(true); // Show the main app
+                    
+                    // Detach existing listeners
+                    if (typeof unsubscribeSettings === 'function' && unsubscribeSettings) unsubscribeSettings();
+                    if (typeof unsubscribeTransactions === 'function' && unsubscribeTransactions) unsubscribeTransactions();
+                    if (typeof unsubscribeUpcoming === 'function' && unsubscribeUpcoming) unsubscribeUpcoming();
+                    if (typeof unsubscribeAccounts === 'function' && unsubscribeAccounts) unsubscribeAccounts();
+
+                    // 1. Settings Listener
+                    unsubscribeSettings = onSnapshot(doc(db, getSettingsPath()), 
+                        (docSnap) => {
+                            let settingsData = docSnap.exists() ? docSnap.data() : {};
+                            
+                            // Check for balances update to trigger debt recalc
+                            const balancesChanged = (settingsData.balanceA || 0) !== appState.settings.balanceA ||
+                                                  (settingsData.balanceB || 0) !== appState.settings.balanceB;
+
+                            appState.settings = { ...appState.settings, ...settingsData };
+                            
+                            // If balances changed AND method is Proportional, recalculate
+                            if (balancesChanged && appState.settings.divisionMethod === 'Proportional') {
+                                recalculateAndSaveDebt();
+                            }
+                            renderApp();
+                        },
+                        (error) => console.error("Settings listener error:", error)
+                    );
+
+                    // 2. Accounts Listener
+                    unsubscribeAccounts = onSnapshot(doc(db, getCustomAccountsPath()), (docSnap) => {
+                        if (docSnap.exists()) {
+                            appState.accounts = { ...appState.accounts, ...docSnap.data() };
+                        }
+                        renderApp();
+                    }, (error) => console.error("Accounts listener error:", error));
+
+                    // 3. Transactions Listener
+                    unsubscribeTransactions = onSnapshot(query(getTransactionsColRef()), 
+                        (snapshot) => {
+                            appState.transactions = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }))
+                                .sort((a, b) => b.date.seconds - a.date.seconds); // Sort newest first
+                            
+                            // Recalculate debt whenever transactions change
+                            recalculateAndSaveDebt();
+                            filterAndSortTransactions(); // This will call renderTransactionsTable
+                            renderApp();
+                        },
+                        (error) => console.error("Transactions listener error:", error)
+                    );
+
+                    // 4. Upcoming Items Listener
+                    unsubscribeUpcoming = onSnapshot(query(getUpcomingColRef()), (snapshot) => {
+                        appState.upcoming = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+                        renderApp();
+                    }, (error) => console.error("Upcoming listener error:", error));
+                    
+                    // All listeners attached, hide loading screen
+                    updateLoading(false);
+
                 } else {
-                    await signInAnonymously(auth);
+                    // User is signed out or not yet signed in
+                    userId = null;
+                    renderAuthScreen(false); // Show the login screen
+                    
+                    // Detach any lingering listeners
+                    if (typeof unsubscribeSettings === 'function' && unsubscribeSettings) unsubscribeSettings();
+                    if (typeof unsubscribeTransactions === 'function' && unsubscribeTransactions) unsubscribeTransactions();
+                    if (typeof unsubscribeUpcoming === 'function' && unsubscribeUpcoming) unsubscribeUpcoming();
+                    if (typeof unsubscribeAccounts === 'function' && unsubscribeAccounts) unsubscribeAccounts();
+                    
+                    // --- FIX: Restored original auth flow for Canvas environment ---
+                    // Attempt to sign in with token first
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        signInWithCustomToken(auth, __initial_auth_token).catch((error) => {
+                            console.error("Initial Auth attempt failed: ", error);
+                            // If token fails, fall back to anonymous
+                            signInAnonymously(auth).catch(e => {
+                                console.error("Anonymous auth failed: ", e);
+                                updateLoading(false); // Hide loading on final failure
+                            });
+                        });
+                    } else {
+                        // If no token, just sign in anonymously
+                        signInAnonymously(auth).catch(e => {
+                            console.error("Anonymous auth failed: ", e);
+                            updateLoading(false); // Hide loading on final failure
+                        });
+                    }
                 }
-                // onAuthStateChanged will handle the subsequent UI and data setup
-            } catch (e) {
-                // If initial sign-in fails (e.g., expired/mismatch token), 
-                // onAuthStateChanged will receive null user, prompting manual login.
-                console.error("Initial Auth attempt failed: ", e);
-                updateLoading(false);
-            }
+            });
         };
 
-
+        // --- EVENT LISTENERS ---
         const setupEventListeners = () => {
+            // Navigation
+            document.querySelectorAll('.nav-button').forEach(btn => {
+                btn.onclick = (e) => {
+                    const sectionId = e.currentTarget.dataset.section;
+                    appState.currentView = sectionId;
+                    
+                    // 1. Remove active state from ALL navigation buttons (desktop and mobile)
+                    document.querySelectorAll('.nav-button').forEach(b => b.classList.remove('ios-tab-active'));
+                    
+                    // 2. Add active state to ALL buttons matching the selected section
+                    document.querySelectorAll(`.nav-button[data-section="${sectionId}"]`).forEach(b => {
+                        b.classList.add('ios-tab-active');
+                    });
+                    
+                    // 3. Show correct content section
+                    document.querySelectorAll('.app-section').forEach(s => s.classList.add('hidden'));
+                    document.getElementById(`${sectionId}-section`).classList.remove('hidden');
+                    
+                    // Re-render calendar if that's the new view
+                    if (sectionId === 'calendar') {
+                        renderCalendar();
+                    }
+                };
+            });
+
             // Auth Buttons
             document.getElementById('login-button').onclick = () => handleAuth(false);
             document.getElementById('signup-button').onclick = () => handleAuth(true);
             document.getElementById('logout-button').onclick = () => signOut(auth);
+            
+            // Modal Close
+            document.getElementById('modal-day-close').onclick = () => document.getElementById('calendar-day-modal').classList.add('hidden');
 
-            // Navigation
-            document.querySelectorAll('.nav-button').forEach(button => {
-                button.addEventListener('click', () => {
-                    const sectionId = button.dataset.section;
-                    appState.currentView = sectionId;
-
-                    document.querySelectorAll('.app-section').forEach(section => {
-                        section.classList.add('hidden');
-                    });
-                    document.getElementById(`${sectionId}-section`).classList.remove('hidden');
-
-                    document.querySelectorAll('.nav-button').forEach(nav => {
-                        nav.classList.remove('ios-tab-active', 'text-gray-900');
-                        nav.classList.add('text-gray-600', 'hover:bg-gray-100');
-                    });
-                    button.classList.add('ios-tab-active', 'text-gray-900');
-                    button.classList.remove('text-gray-600', 'hover:bg-gray-100');
-
-                    if (sectionId === 'reports') generateReport();
-                    if (sectionId === 'calendar') renderCalendar();
-                });
-            });
-
-            // Tracker Form Submission
-            document.getElementById('expense-form').onsubmit = async (e) => {
+            // --- Tracker Form ---
+            document.getElementById('expense-form').onsubmit = (e) => {
                 e.preventDefault();
-                const form = e.target;
-                const data = {
-                    date: form['expense-date'].value,
-                    amount: parseFloat(form['expense-amount'].value),
-                    type: form['expense-type'].value,
-                    category: form['expense-category'].value,
-                    particular: form['expense-particular'].value,
-                    whoPaid: form['expense-who-paid'].value,
-                    debtType: form['expense-debt-type'].value,
-                    account: form['expense-account'].value,
-                };
-                
-                if (data.type === 'Income' && (data.debtType === 'Shared' || data.debtType === 'Personal')) {
-                    showMessageModal("Input Error", "Income should not be logged as a Shared or Personal *Expense*. Please use 'Debt Payment' for income transactions.");
+                const date = document.getElementById('expense-date').valueAsDate;
+                if (!date) {
+                    showMessageModal("Error", "Please select a valid date.");
                     return;
                 }
-
-                await addTransaction(data);
+                
+                addTransaction({
+                    particular: document.getElementById('expense-particular').value,
+                    amount: parseFloat(document.getElementById('expense-amount').value),
+                    date: date,
+                    type: document.getElementById('expense-type').value,
+                    whoPaid: document.getElementById('expense-who-paid').value,
+                    category: document.getElementById('expense-category').value,
+                    account: document.getElementById('expense-account').value,
+                    debtType: document.getElementById('expense-type').value === 'Income' ? 'N/A' : document.getElementById('expense-debt-type').value,
+                });
             };
-
-            // Transaction Filter/Sort
-            document.getElementById('filter-particular').oninput = filterAndSortTransactions;
+            
+            // Dynamic Form UI
+            document.getElementById('expense-type').onchange = (e) => updateTransactionFormUI(e.target.value);
+            
+            // Transaction Filters
+            document.getElementById('filter-particular').onkeyup = filterAndSortTransactions;
             document.getElementById('filter-date-start').onchange = filterAndSortTransactions;
             document.getElementById('filter-date-end').onchange = filterAndSortTransactions;
             document.getElementById('sort-by').onchange = filterAndSortTransactions;
 
-            // Settings Form
-            document.getElementById('partner-settings-form').onsubmit = async (e) => {
-                e.preventDefault();
-                const form = e.target;
-                const method = form.elements['division-method'].value;
-                const customA = parseFloat(form['partner-a-percent'].value);
-                const customB = parseFloat(form['partner-b-percent'].value);
+            // --- Reports ---
+            document.getElementById('generate-report-button').onclick = renderReport;
+            document.getElementById('print-report-button').onclick = () => window.print();
 
-                if (method === 'Custom' && (customA + customB !== 100)) {
+            // --- Calendar ---
+            document.getElementById('calendar-prev').onclick = () => {
+                appState.calendar.currentMonth--;
+                if (appState.calendar.currentMonth < 0) {
+                    appState.calendar.currentMonth = 11;
+                    appState.calendar.currentYear--;
+                }
+                renderCalendar();
+            };
+            document.getElementById('calendar-next').onclick = () => {
+                appState.calendar.currentMonth++;
+                if (appState.calendar.currentMonth > 11) {
+                    appState.calendar.currentMonth = 0;
+                    appState.calendar.currentYear++;
+                }
+                renderCalendar();
+            };
+            // Event delegation for calendar day click
+            document.getElementById('calendar-grid').onclick = (e) => {
+                const dayCell = e.target.closest('[data-date]');
+                if (dayCell) {
+                    renderCalendarModal(dayCell.dataset.date);
+                }
+            };
+
+            // Upcoming Form
+            document.getElementById('upcoming-form').onsubmit = (e) => {
+                e.preventDefault();
+                const date = document.getElementById('upcoming-date').valueAsDate;
+                if (!date) {
+                    showMessageModal("Error", "Please select a valid date.");
+                    return;
+                }
+                
+                const isRecurring = document.getElementById('upcoming-recurring').checked;
+                addUpcomingExpense({
+                    particular: document.getElementById('upcoming-particular').value,
+                    amount: parseFloat(document.getElementById('upcoming-amount').value),
+                    date: date,
+                    recurring: isRecurring,
+                    recurringDay: isRecurring ? parseInt(document.getElementById('recurring-day').value) : null
+                });
+            };
+            document.getElementById('upcoming-recurring').onchange = (e) => {
+                document.getElementById('recurring-settings').classList.toggle('hidden', !e.target.checked);
+            };
+            // Populate recurring days
+            const recurringDaySelect = document.getElementById('recurring-day');
+            for (let i = 1; i <= 31; i++) {
+                recurringDaySelect.add(new Option(i, i));
+            }
+
+            // --- Settings ---
+            document.getElementById('partner-settings-form').onsubmit = (e) => {
+                e.preventDefault();
+                
+                const customA = parseFloat(document.getElementById('partner-a-percent').value);
+                const customB = parseFloat(document.getElementById('partner-b-percent').value);
+                
+                if (document.querySelector('input[name="division-method"]:checked').value === 'Custom' && (customA + customB !== 100)) {
                     document.getElementById('custom-percent-error').classList.remove('hidden');
                     return;
                 }
                 document.getElementById('custom-percent-error').classList.add('hidden');
-
-                const newSettings = {
-                    partnerA: form['partner-a-name'].value,
-                    partnerB: form['partner-b-name'].value,
-                    incomeA: parseFloat(form['partner-a-income'].value) || 0,
-                    incomeB: parseFloat(form['partner-b-income'].value) || 0,
-                    divisionMethod: method,
-                    customA: customA || 0,
-                    customB: customB || 0,
-                };
-
-                await saveSettings(newSettings);
-                showMessageModal("Success", "Partner and Division settings saved successfully.");
+                
+                saveSettings({
+                    partnerA: document.getElementById('partner-a-name').value,
+                    partnerB: document.getElementById('partner-b-name').value,
+                    balanceA: parseFloat(document.getElementById('partner-a-balance').value) || 0,
+                    balanceB: parseFloat(document.getElementById('partner-b-balance').value) || 0,
+                    divisionMethod: document.querySelector('input[name="division-method"]:checked').value,
+                    customA: customA,
+                    customB: customB
+                });
+                showMessageModal("Settings Saved", "Your settings have been updated.");
             };
 
-            // Settings Radio Toggle
+            // Show/hide custom percentage fields
             document.querySelectorAll('input[name="division-method"]').forEach(radio => {
                 radio.onchange = (e) => {
                     document.getElementById('custom-percentage-fields').classList.toggle('hidden', e.target.value !== 'Custom');
                 };
             });
-
-            // Custom Account Form
-            document.getElementById('custom-type-form').onsubmit = async (e) => {
+            
+            // Reconcile Balances
+            document.getElementById('reconcile-balances-button').onclick = () => {
+                showMessageModal(
+                    "Reconcile Balances",
+                    "This will reset your standing balances (cash on hand) to zero. This does not affect your debt. Are you sure?",
+                    true,
+                    () => saveSettings({ balanceA: 0, balanceB: 0 })
+                );
+            };
+            
+            // Custom Types Form
+            document.getElementById('custom-type-form').onsubmit = (e) => {
                 e.preventDefault();
-                const type = document.getElementById('custom-type-select').value;
-                const name = document.getElementById('custom-type-name').value;
-                await saveCustomAccounts(type, name);
+                saveCustomAccounts(
+                    document.getElementById('custom-type-select').value,
+                    document.getElementById('custom-type-name').value
+                );
             };
+            
+            // Accordion Listeners
+            document.querySelectorAll('.accordion-button').forEach(button => {
+                button.onclick = () => {
+                    const content = button.nextElementSibling;
+                    
+                    // Simple logic to just open/close one at a time
+                    // Check if already open
+                    const isCurrentlyOpen = content.classList.contains('open');
+                    
+                    // 1. Close all others
+                    document.querySelectorAll('.accordion-button').forEach(b => b.classList.remove('open'));
+                    document.querySelectorAll('.accordion-content').forEach(c => {
+                        c.classList.remove('open');
+                        c.style.maxHeight = "0";
+                    });
 
-            // Report Buttons
-            document.getElementById('generate-report-button').onclick = generateReport;
-            document.getElementById('print-report-button').onclick = () => window.print();
-
-            // Calendar Navigation
-            document.getElementById('calendar-prev').onclick = () => {
-                currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
-                renderCalendar();
-            };
-            document.getElementById('calendar-next').onclick = () => {
-                currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
-                renderCalendar();
-            };
-
-            // Calendar Recurring Checkbox
-            document.getElementById('upcoming-recurring').onchange = (e) => {
-                document.getElementById('recurring-settings').classList.toggle('hidden', !e.target.checked);
-            };
-
-            // Populate Recurring Days
-            const recurringDaySelect = document.getElementById('recurring-day');
-            for (let i = 1; i <= 31; i++) {
-                recurringDaySelect.innerHTML += `<option value="${i}">${i}</option>`;
-            }
-
-            // Upcoming Form Submission
-            document.getElementById('upcoming-form').onsubmit = async (e) => {
-                e.preventDefault();
-                const form = e.target;
-                const isRecurring = form['upcoming-recurring'].checked;
-                const data = {
-                    particular: form['upcoming-particular'].value,
-                    amount: parseFloat(form['upcoming-amount'].value),
-                    date: form['upcoming-date'].value,
-                    recurring: isRecurring,
-                    recurringDay: isRecurring ? parseInt(form['recurring-day'].value) : null
+                    // 2. Toggle the current one
+                    if (!isCurrentlyOpen) {
+                        button.classList.add('open');
+                        content.classList.add('open');
+                        content.style.maxHeight = content.scrollHeight + "px";
+                    }
                 };
-                await addUpcomingExpense(data);
-            };
+            });
+
+            // Set default date values
+            document.getElementById('expense-date').valueAsDate = new Date();
+            document.getElementById('upcoming-date').valueAsDate = new Date();
         };
 
         // --- INITIALIZATION ---
-
-        // Run setup functions
         document.addEventListener('DOMContentLoaded', () => {
             setupEventListeners();
             lucide.createIcons();
-            // Start the mandatory initial authentication flow
-            initializeAuthAndApp(); 
+            // Open the default accordion
+            const defaultAccordion = document.querySelector('.accordion-button[data-type="expense"]');
+            if (defaultAccordion) {
+                const content = defaultAccordion.nextElementSibling;
+                defaultAccordion.classList.add('open');
+                content.classList.add('open');
+                content.style.maxHeight = content.scrollHeight + "px";
+            }
+            initializeAuthAndApp();
         });
-
     </script>
 </body>
 </html>
